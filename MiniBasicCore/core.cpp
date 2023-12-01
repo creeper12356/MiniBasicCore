@@ -60,36 +60,93 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
 {
     //TODO: 非法中缀表达式
     QStack<char> st;
+    enum read_mode{read_other = 0,read_digit,read_var};
+    read_mode mode = read_other;
+    int32_t digit = 0;
+    string var = "";
+
     for(auto ch:str){
-        if(ch == '('){
-            st.push(ch);
-        }
-        else if(ch == ')'){
-            while(!st.empty() && st.top() != '('){
-                os << st.pop();
+        if(isalpha(ch)){
+            if(mode == read_var){
+                //already reading var
+                var.push_back(ch);
             }
-            //弹出'('
-            st.pop();
-        }
-        else if(ch == '*' || ch == '/'){
-            st.push(ch);
-        }
-        else if(ch == '+' || ch == '-'){
-            while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '+' || st.top() == '-')){
-                os << st.pop();
+            else if(mode == read_digit){
+                cerr << "directly switch from alpha to digit.";
+                throw ParseError;
             }
-            st.push(ch);
-        }
-        else if(ch == '*' || ch == '/'){
-            while(!st.empty() && (st.top() == '*' || st.top() == '/')){
-                os << st.pop();
+            else{
+                //start to read var
+                os << "(";
+                mode = read_var;
+                var.push_back(ch);
             }
-            st.push(ch);
+        }
+        else if(isdigit(ch)){
+            if(mode == read_var){
+                //already reading var
+                var.push_back(ch);
+            }
+            else if(mode == read_digit){
+                //already reading digit
+                digit = digit * 10 + (ch - '0');
+            }
+            else{
+                //start to read digit
+                mode = read_digit;
+                os << "[";
+                digit = digit * 10 + (ch - '0');
+            }
         }
         else{
-            //digit or alpha
-            os << ch;
+            if(mode == read_digit){
+                //ready to finish reading digit
+                cout << "finish reading digit: " << digit << endl;
+                os << digit << "]";
+                mode = read_other;
+                digit = 0;
+            }
+            else if(mode == read_var){
+                //ready to finish reading var
+                cout << "finish reading var: " << var << endl; 
+                os << var << ")";
+                mode = read_other;
+                var.clear();
+            }
+
+            if(ch == '('){
+                st.push(ch);
+            }
+            else if(ch == ')'){
+                while(!st.empty() && st.top() != '('){
+                    os << st.pop();
+                }
+                //弹出'('
+                st.pop();
+            }
+            else if(ch == '*' || ch == '/'){
+                st.push(ch);
+            }
+            else if(ch == '+' || ch == '-'){
+                while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '+' || st.top() == '-')){
+                    os << st.pop();
+                }
+                st.push(ch);
+            }
+            else if(ch == '*' || ch == '/'){
+                while(!st.empty() && (st.top() == '*' || st.top() == '/')){
+                    os << st.pop();
+                }
+                st.push(ch);
+            }
         }
+    }
+    //处理最后一个变量
+    if(mode == read_var){
+        os << var << ")";
+    }
+    else if(mode == read_digit){
+        os << digit << "]";
     }
     //弹出剩余运算符
     while(!st.empty()){
@@ -106,6 +163,7 @@ int32_t Core::parseExpression(const string &str)
     Infix2Suffix(ss,str);
     string suffix(ss.str());
     cout << "suffix: " << suffix << endl;
+    return 0;
 
     enum read_mode{read_other = 0,read_digit,read_var};
     read_mode mode = read_other;
