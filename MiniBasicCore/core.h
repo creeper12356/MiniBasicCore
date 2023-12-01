@@ -7,23 +7,23 @@
 
 #include <QVector>
 #include <QStack>
+#include <QMap>
 
 #include "statement.h"
 #include "expression.h"
 using namespace std;
-
-//QVector<Op> operators = {Op("+",1),Op("-",1),Op("*",2),Op("/",2)};
+enum read_mode{read_other = 0,read_digit,read_var};
 class Core
 {
 private:
-    QVector<Var> variables = {};
+    QMap<string,int32_t> varTable;
 public:
     Core();
     int exec();
 private:
     //将中缀表达式转成后缀表达式，输出到os
     ostream& Infix2Suffix(ostream& os,const string& infix);
-    qint32 parseExpression(const string& str);
+    int32_t parseExpression(const string& str);
 };
 
 #endif // CORE_H

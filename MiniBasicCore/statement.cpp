@@ -31,5 +31,14 @@ Statement::Statement(const QString& src){
     //去除行号和指令关键字
     parseList.removeFirst();
     parseList.removeFirst();
+
+    //替换余数运算符
+    for(int i = 0;i < parseList.size();++i){
+        if(parseList[i] == "MOD"){
+            std::cout << "replace.";
+            parseList.replace(i,"%");
+        }
+    }
+    //处理复杂运算符
     _object = parseList.join("");
 }

@@ -5,18 +5,18 @@
 class Var{
 public:
     QString name;
-    qint32 value;
+    int32_t value;
 };
 //运算符
-class Op{
-public:
-    QString content;
-    //优先级，从1开始
-    int level;
+//class Op{
+//public:
+//    QString content;
+//    //优先级，从1开始
+//    int level;
 
-    Op(const QString& c,int l):content(c),level(l){}
-    Op(){}
-};
+//    Op(const QString& c,int l):content(c),level(l){}
+//    Op(){}
+//};
 
 typedef QString ExpressionType;
 //表达式树节点

@@ -4,7 +4,6 @@ Core::Core()
 {
 
 }
-
 int Core::exec()
 {
     //初始化
@@ -20,11 +19,11 @@ int Core::exec()
         }
         try {
             Statement statement = Statement(QString::fromStdString(input));
-            cout << "------" << endl;
-            cout << "lineNum: " << statement.lineNum() << endl;
-            cout << "type: " << statement.type().toStdString() << endl;
-            cout << "object: " << statement.object().toStdString() << endl;
-            cout << "------" << endl;
+//            cout << "------" << endl;
+//            cout << "lineNum: " << statement.lineNum() << endl;
+//            cout << "type: " << statement.type().toStdString() << endl;
+//            cout << "object: " << statement.object().toStdString() << endl;
+//            cout << "------" << endl;
             if(statement.type() == "REM"){
                 //注释
                 continue;
@@ -42,16 +41,36 @@ int Core::exec()
                     //没有赋值号
                     throw ParseError;
                 }
-//                cout << "left: " << statement.object().left(assignmentIndex).toStdString() << endl;
-                parseExpression(statement.object().right(statement.object().size() - assignmentIndex - 1).toStdString());
+                string left = statement.object().left(assignmentIndex).toStdString();
+                string right = statement.object().right(statement.object().size() - assignmentIndex - 1).toStdString();
+
+                varTable[left] = parseExpression(right);
+            }
+            else if(statement.type() == "PRINT"){
+                cout << "object: " << statement.object().toStdString() << endl;
+                cout << parseExpression(statement.object().toStdString()) << endl;
+            }
+            else if(statement.type() == "INPUT"){
+                //TODO check destination
+//                for(auto ch: statement.object()){
+
+//                }
+                cout << "?";
+                int32_t input;
+                cin >> input;
+                cin.get();
+                varTable[statement.object().toStdString()] = input;
+            }
+            else if(statement.type() == "END"){
+                return 0;
             }
         }
         catch(Error){
             cout << "error." << endl;
             continue;
         }
-        cout << input << endl;
-        cout << endl;
+//        cout << input << endl;
+//        cout << endl;
     }
     return 0;
 }
@@ -60,7 +79,7 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
 {
     //TODO: 非法中缀表达式
     QStack<char> st;
-    enum read_mode{read_other = 0,read_digit,read_var};
+    
     read_mode mode = read_other;
     int32_t digit = 0;
     string var = "";
@@ -124,20 +143,21 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
                 //弹出'('
                 st.pop();
             }
-            else if(ch == '*' || ch == '/'){
-                st.push(ch);
-            }
             else if(ch == '+' || ch == '-'){
-                while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '+' || st.top() == '-')){
+                while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '%' || st.top() == '+' || st.top() == '-')){
                     os << st.pop();
                 }
                 st.push(ch);
             }
-            else if(ch == '*' || ch == '/'){
-                while(!st.empty() && (st.top() == '*' || st.top() == '/')){
+            else if(ch == '*' || ch == '/' || ch == '%'){
+                while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '%')){
                     os << st.pop();
                 }
                 st.push(ch);
+            }
+            else {
+                cerr << "unknown operator " << ch << endl;
+                throw ParseError;
             }
         }
     }
@@ -162,68 +182,73 @@ int32_t Core::parseExpression(const string &str)
     ostringstream ss;
     Infix2Suffix(ss,str);
     string suffix(ss.str());
-    cout << "suffix: " << suffix << endl;
-    return 0;
+//    cout << "suffix: " << suffix << endl;
 
-    enum read_mode{read_other = 0,read_digit,read_var};
+    //TODO: 假设变量没有下划线
+    //1: reading digit , 2: reading variable, 0 other cases
     read_mode mode = read_other;
     int32_t digit = 0;
     string var = "";
-    //TODO: 假设变量没有下划线
-    //1: reading digit , 2: reading variable, 0 other cases
+    QStack<int32_t> st;
+    int32_t op1,op2;//操作数
     for(auto ch: suffix){
-        if(isdigit(ch)){
-            if(mode == read_var){
-                //already reading var
-                var.push_back(ch);
-            }
-            else if(mode == read_digit){
-                //already reading digit
-                digit = digit * 10 + (ch - '0');
-            }
-            else{
-                //start to read digit
-                mode = read_digit;
-                digit = digit * 10 + (ch - '0');
-            }
+        if(ch == '('){
+            //start reading var
+            mode = read_var;
+            continue;
         }
-        else if(isalpha(ch)){
-            if(mode == read_digit){
-                //actually is not legal
-                //switch to read var
-                cerr << "directly switch from alpha to digit.";
-                throw ParseError;
-                // cout << "finish reading digit: " << digit << endl;
-                // mode = 2;
-                // digit = 0;
-                // var.clear();
-                // var.push_back(ch);
+        else if(ch == ')'){
+            //finish reading var
+            if(!varTable.contains(var)){
+                throw UseBeforeDeclare;
             }
-            else if(mode == read_var){
-                //already reading var
-                var.push_back(ch);
-            }
-            else{
-                //start to read var
-                mode = read_var;
-                var.push_back(ch);
-            }
+            st.push(varTable[var]);
+            mode = read_other;
+            var.clear();
+            continue;
         }
-        else{
-            //标识符
-            if(mode == read_digit){
-                //ready to finish reading digit
-                cout << "finish reading digit: " << digit << endl;
-                mode = read_other;
-                digit = 0;
-            }
-            else if(mode == read_var){
-                //ready to finish reading var
-                cout << "finish reading var: " << var << endl; 
-                mode = read_other;
-                var.clear();
-            }
+        else if(ch == '['){
+            //start reading digit
+            mode = read_digit;
+            continue;
+        }
+        else if(ch == ']'){
+            //finish reading digit 
+            st.push(digit);
+            mode = read_other;
+            digit = 0;
+            continue;
+        }
+        if(mode == read_var){
+            var.push_back(ch);
+            continue;
+        }
+        if(mode == read_digit){
+            digit = digit * 10 + (ch - '0') ;
+            continue;
+        }
+        //当前都为二元运算
+        op2 = st.pop();
+        op1 = st.pop();
+        //read other mode
+        if(ch == '+'){
+            st.push(op1 + op2);
+        }
+        else if(ch == '-'){
+            st.push(op1 - op2);
+        }
+        else if(ch == '*'){
+            st.push(op1 * op2);
+        }
+        else if(ch == '/'){
+            st.push(op1 / op2);
+        }
+        else if(ch == '%'){
+            st.push(op1 % op2);
         }
     }
-    return 0;
+    if(st.empty()){
+        return -1;
+    }
+    return st.top();
 }

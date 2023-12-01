@@ -7,7 +7,8 @@
 
 typedef QString StatementType;
 enum Error{
-    ParseError
+    ParseError,
+    UseBeforeDeclare
 };
 
 class Statement{
