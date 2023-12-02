@@ -6,9 +6,12 @@
 #include <QStringList>
 
 typedef QString StatementType;
-enum Error{
+enum Exception{
     ParseError,
-    UseBeforeDeclare
+    UseBeforeDeclare,
+    NoLineNum,
+    WrongLineNum,	//行号要求位于1-1000,000之间
+    UnknownStatementType
 };
 
 class Statement{

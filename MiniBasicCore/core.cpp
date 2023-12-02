@@ -1,29 +1,63 @@
 #include "core.h"
+#include <fstream>
+#include <cstring>
 using namespace std;
 Core::Core()
 {
 
 }
-int Core::exec()
+int Core::exec(int argc,char* argv[])
 {
+    //0 stdin, 1 file
+    int input_mode = 0;
     //初始化
     string input = "";
+    ifstream fin;
+    //输入流
+    istream* in = nullptr;
+
+    if(argc == 1){
+        input_mode = 0;
+        in = &cin;
+    }
+    else if(argc == 3 && strcmp(argv[1],"-i") == 0){
+        input_mode = 1;
+        fin.open(argv[2]);
+        if(!fin){
+            cerr << argv[2] << " does not exists.\n";
+            return -1;
+        }
+        in = &fin;
+    }
+    else {
+        cerr << "Wrong arguments.Abort.\n";
+        return -1;
+    }
 
     while(true){
-        //终端符号
-        cout << ">>>";
-        getline(cin,input);
-        if(input == "exit"){
-            cout << "logout" << endl;
-            return 0;
+        //只有标准输入模式打印终端提示符
+        if(input_mode == 0){
+            cout << ">>>";
+        }
+        if(!std::getline(*in,input)){
+            break;
         }
         try {
             Statement statement = Statement(QString::fromStdString(input));
-//            cout << "------" << endl;
-//            cout << "lineNum: " << statement.lineNum() << endl;
-//            cout << "type: " << statement.type().toStdString() << endl;
-//            cout << "object: " << statement.object().toStdString() << endl;
-//            cout << "------" << endl;
+            if(statement.type() == "CMD"){
+                //调试使用的命令
+                if(statement.object() == "EXIT"){
+                    cout << "logout" << endl;
+                    return 0;
+                }
+                else if(statement.object() == "VARTABLE"){
+                    printVarTable();
+                }
+                else if(statement.object() == "CODEHISTORY"){
+                    printCodeHistory();
+                }
+                continue;
+            }
             if(statement.type() == "REM"){
                 //注释
                 continue;
@@ -43,41 +77,58 @@ int Core::exec()
                 }
                 string left = statement.object().left(assignmentIndex).toStdString();
                 string right = statement.object().right(statement.object().size() - assignmentIndex - 1).toStdString();
-
-                varTable[left] = parseExpression(right);
+                //先保证解析正确再赋值
+                int parseRes = parseExpression(right);
+                varTable[left] = parseRes;
             }
             else if(statement.type() == "PRINT"){
-                cout << "object: " << statement.object().toStdString() << endl;
                 cout << parseExpression(statement.object().toStdString()) << endl;
             }
             else if(statement.type() == "INPUT"){
-                //TODO check destination
+                //TODO 检查destination合法性
 //                for(auto ch: statement.object()){
 
 //                }
                 cout << "?";
                 int32_t input;
+                //TODO 前端保证，用户只能输入一个整数
                 cin >> input;
+                if(!cin.good()){
+                    //输入异常
+                    cin.clear();
+                    cin.get();
+                    throw ParseError;
+                }
                 cin.get();
                 varTable[statement.object().toStdString()] = input;
             }
             else if(statement.type() == "END"){
+                //结束
                 return 0;
             }
+
+            else{
+                //未知关键字
+                cerr << "UnknownStatementType " << statement.type().toStdString() << "." << endl;
+                throw UnknownStatementType;
+            }
+            //执行成功的代码
+            codeHistory.append(statement.source());
         }
-        catch(Error){
-            cout << "error." << endl;
+        catch(Exception e){
+            cerr << "throw Exception " << int(e) << endl;
             continue;
         }
-//        cout << input << endl;
-//        cout << endl;
+    }
+    if(input_mode == 1){
+        fin.close();
     }
     return 0;
 }
 
 ostream& Core::Infix2Suffix(ostream& os,const string &str)
 {
-    //TODO: 非法中缀表达式
+//    TODO: 非法中缀表达式
     QStack<char> st;
     
     read_mode mode = read_other;
@@ -91,7 +142,8 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
                 var.push_back(ch);
             }
             else if(mode == read_digit){
-                cerr << "directly switch from alpha to digit.";
+                //使用非法变量名
+                cerr << "directly switch from alpha to digit.\n";
                 throw ParseError;
             }
             else{
@@ -140,6 +192,11 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
                 while(!st.empty() && st.top() != '('){
                     os << st.pop();
                 }
+                if(st.empty()){
+                    //多余右括号不匹配
+                    cerr << "blankets not match.\n";
+                    throw ParseError;
+                }
                 //弹出'('
                 st.pop();
             }
@@ -156,6 +213,7 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
                 st.push(ch);
             }
             else {
+                //未知运算符
                 cerr << "unknown operator " << ch << endl;
                 throw ParseError;
             }
@@ -170,6 +228,11 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
     }
     //弹出剩余运算符
     while(!st.empty()){
+        if(st.top() == '('){
+            //多余左括号不匹配
+            cerr << "blankets not match.\n";
+            throw ParseError;
+        }
         os << st.pop();
     }
     return os;
@@ -248,7 +311,29 @@ int32_t Core::parseExpression(const string &str)
         }
     }
     if(st.empty()){
-        return -1;
+        //TODO empty num
+        cerr << "Empty expression.\n";
+        throw ParseError;
     }
     return st.top();
+}
+
+void Core::printVarTable() const
+{
+    cout << "---VARTABLE---" << endl;
+    cout << "name\tvalue\n";
+    cout << "----\t-----\n";
+    for(auto name:varTable.keys()){
+        cout << name << "\t" << varTable[name] << endl;
+    }
+    cout << "---\tEND\t---" << endl;
+}
+
+void Core::printCodeHistory() const
+{
+    cout << "---CODEHISTORY---" << endl;
+    for(auto code: codeHistory){
+        cout << code.toStdString() << endl;
+    }
+    cout << "---\tEND\t---" << endl;
 }

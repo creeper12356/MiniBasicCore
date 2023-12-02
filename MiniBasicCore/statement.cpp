@@ -16,7 +16,10 @@ Statement::Statement(const QString& src){
     _lineNum = parseList[0].toInt(&isNum);
     if(!isNum){
         //第一个参数不是行号
-        throw ParseError;
+        throw NoLineNum;
+    }
+    if(_lineNum < 0 || _lineNum > 1000000){
+        throw WrongLineNum;
     }
 
     if(size == 1){

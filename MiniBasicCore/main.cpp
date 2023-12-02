@@ -8,5 +8,5 @@ using namespace std;
 int main(int argc, char *argv[])
 {
     Core core;
-    core.exec();
+    return core.exec(argc,argv);
 }
