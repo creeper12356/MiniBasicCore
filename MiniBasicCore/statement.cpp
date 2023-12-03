@@ -45,3 +45,44 @@ Statement::Statement(const QString& src){
     //处理复杂运算符
     _object = parseList.join("");
 }
+
+Statement::Statement(const Statement& other):
+    _lineNum(other.lineNum()),
+    _type(other.type()),
+    _source(other.source()),
+    _object(other.object())
+{
+}
+
+IfStatement::IfStatement(const Statement &stmt)
+    :Statement(stmt)
+{
+    //assert parseList.size() >= 2
+    //TODO: 避免重复解析
+    QStringList parseList = _source.split(" ",QString::SkipEmptyParts);
+    if(parseList[parseList.size() - 2] != "THEN"){
+        //找不到合法的THEN子句
+        std::cerr << "No THEN clause detected.\n";
+        throw ParseError;
+    }
+    bool isNum = false;
+    _destination = parseList.last().toInt(&isNum);
+    if(!isNum){
+        std::cerr << "Illegal destination.\n";
+        throw ParseError;
+    }
+    //去除THEN 和 destination
+    parseList.removeLast();
+    parseList.removeLast();
+    //去除行号和IF
+    parseList.removeFirst();
+    parseList.removeFirst();
+    if(parseList.empty()){
+        std::cerr << "Empty contition detected.\n";
+        throw ParseError;
+    }
+    //合成条件表达式
+    _condition = parseList.join("");
+    std::cout << "condition: " << _condition.toStdString() << std::endl;
+    std::cout << "destination: " << _destination << std::endl;
+}

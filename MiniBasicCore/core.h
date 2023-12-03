@@ -17,14 +17,32 @@ class Core
 {
 private:
     QMap<string,int32_t> varTable;//变量表
-    QVector<QString> codeHistory;//有序存储执行成功的所有代码
+//    QVector<QString> codeHistory;//有序存储执行成功的所有代码
+    QMap<int,QString> codes;//TODO
+    QVector<Op*> operators;//所有合法的运算符
+
+    //指向codeHistory中下一条指令
+    int PC;
 public:
     Core();
+    ~Core();
     int exec(int argc, char *argv[]);
 private:
+    //执行指令code，
+    //成功并准备下一次执行返回1，
+    //成功并退出返回0，
+    //失败抛出异常
+    int exeCode(const string& code);
     //将中缀表达式转成后缀表达式，输出到os
-    ostream& Infix2Suffix(ostream& os,const string& infix);
-    int32_t parseExpression(const string& str);
+    ostream& infix2Suffix(ostream& os,const string& infix);
+    //解析后缀表达式，返回运算结果
+    int32_t parseSuffixExpr(const string& expr);
+    //解析中缀表达式，返回运算结果
+    int32_t parseInfixExpr(const string& expr);
+    //解析简单的条件表达式
+    bool parseBoolExpr(const string& expr);
+    //改变PC
+    bool gotoLine(int dst);
 private:
     void printVarTable() const;
     void printCodeHistory() const;

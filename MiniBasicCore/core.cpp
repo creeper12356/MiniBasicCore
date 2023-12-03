@@ -3,8 +3,24 @@
 #include <cstring>
 using namespace std;
 Core::Core()
+    :operators({
+               new OpPos,
+               new OpNeg,
+               new OpAdd,
+               new OpMinus,
+               new OpMulti,
+               new OpDiv,
+               new OpMod
+               })
 {
+    PC = 0;
+}
 
+Core::~Core()
+{
+    for(auto op: operators){
+        delete op;
+    }
 }
 int Core::exec(int argc,char* argv[])
 {
@@ -39,82 +55,20 @@ int Core::exec(int argc,char* argv[])
         if(input_mode == 0){
             cout << ">>>";
         }
-        if(!std::getline(*in,input)){
-            break;
+        if(PC == codeHistory.size()){
+            if(!std::getline(*in,input)){
+                break;
+            }
+        }
+        else{
+            input = codeHistory[PC].toStdString();
         }
         try {
-            Statement statement = Statement(QString::fromStdString(input));
-            if(statement.type() == "CMD"){
-                //调试使用的命令
-                if(statement.object() == "EXIT"){
-                    cout << "logout" << endl;
-                    return 0;
+                if(!exeCode(input)){
+                    //退出
+                    break;
                 }
-                else if(statement.object() == "VARTABLE"){
-                    printVarTable();
-                }
-                else if(statement.object() == "CODEHISTORY"){
-                    printCodeHistory();
-                }
-                continue;
             }
-            if(statement.type() == "REM"){
-                //注释
-                continue;
-            }
-            else if(statement.type() == "LET"){
-                int assignmentIndex = -1;
-                //查找赋值号位置
-                for(int i = 0;i < statement.object().size();++i){
-                    if(statement.object()[i] == '='){
-                        assignmentIndex = i;
-                        break;
-                    }
-                }
-                if(assignmentIndex == -1){
-                    //没有赋值号
-                    throw ParseError;
-                }
-                string left = statement.object().left(assignmentIndex).toStdString();
-                string right = statement.object().right(statement.object().size() - assignmentIndex - 1).toStdString();
-                //先保证解析正确再赋值
-                int parseRes = parseExpression(right);
-                varTable[left] = parseRes;
-            }
-            else if(statement.type() == "PRINT"){
-                cout << parseExpression(statement.object().toStdString()) << endl;
-            }
-            else if(statement.type() == "INPUT"){
-                //TODO 检查destination合法性
-//                for(auto ch: statement.object()){
-
-//                }
-                cout << "?";
-                int32_t input;
-                //TODO 前端保证，用户只能输入一个整数
-                cin >> input;
-//                if(!cin.good()){
-//                    输入异常
-//                    cin.clear();
-//                    cin.get();
-//                    throw ParseError;
-//                }
-                cin.get();
-                varTable[statement.object().toStdString()] = input;
-            }
-            else if(statement.type() == "END"){
-                //结束
-                return 0;
-            }
-
-            else{
-                //未知关键字
-                cerr << "UnknownStatementType " << statement.type().toStdString() << "." << endl;
-                throw UnknownStatementType;
-            }
-            //执行成功的代码
-            codeHistory.append(statement.source());
-        }
         catch(Exception e){
             cerr << "throw Exception " << int(e) << endl;
             continue;
@@ -126,11 +80,105 @@ int Core::exec(int argc,char* argv[])
     return 0;
 }
 
-ostream& Core::Infix2Suffix(ostream& os,const string &str)
+int Core::exeCode(const string &code)
 {
-//    TODO: 非法中缀表达式
+    bool isPCModified = false;
+    Statement statement = Statement(QString::fromStdString(code));
+    if(statement.type() == "CMD"){
+        //调试使用的命令
+        if(statement.object() == "EXIT"){
+            cout << "logout" << endl;
+            return 0;
+        }
+        else if(statement.object() == "VARTABLE"){
+            printVarTable();
+        }
+        else if(statement.object() == "CODEHISTORY"){
+            printCodeHistory();
+        }
+        return 1;
+    }
+    if(statement.type() == "REM"){
+        //注释
+        //注释不加入运行历史中
+        return 1;
+    }
+    else if(statement.type() == "LET"){
+        int assignmentIndex = -1;
+        //查找赋值号位置
+        for(int i = 0;i < statement.object().size();++i){
+            if(statement.object()[i] == '='){
+                assignmentIndex = i;
+                break;
+            }
+        }
+        if(assignmentIndex == -1){
+            //没有赋值号
+            throw ParseError;
+        }
+        string left = statement.object().left(assignmentIndex).toStdString();
+        string right = statement.object().right(statement.object().size() - assignmentIndex - 1).toStdString();
+        //先保证解析正确再赋值
+        int parseRes = parseInfixExpr(right);
+        varTable[left] = parseRes;
+    }
+    else if(statement.type() == "PRINT"){
+        cout << parseInfixExpr(statement.object().toStdString()) << endl;
+    }
+    else if(statement.type() == "INPUT"){
+        //TODO 检查destination合法性
+//                for(auto ch: statement.object()){
+
+//                }
+        cout << "?";
+        int32_t input;
+        //TODO 前端保证，用户只能输入一个整数
+        cin >> input;
+//                if(!cin.good()){
+//                    输入异常
+//                    cin.clear();
+//                    cin.get();
+//                    throw ParseError;
+//                }
+        cin.get();
+        varTable[statement.object().toStdString()] = input;
+    }
+    else if(statement.type() == "GOTO"){
+        //TODO: check dst
+        isPCModified = gotoLine(statement.object().toInt());
+    }
+    else if(statement.type() == "IF"){
+        IfStatement ifStatement(statement);
+        if(parseBoolExpr(ifStatement.condition().toStdString())){
+//            std::cout << "dst == " << ifStatement.destination() << endl;
+            isPCModified = gotoLine(ifStatement.destination());
+        }
+    }
+    else if(statement.type() == "END"){
+        //结束
+        return 0;
+    }
+
+    else{
+        //未知关键字
+        cerr << "UnknownStatementType " << statement.type().toStdString() << "." << endl;
+        throw UnknownStatementType;
+    }
+    //执行成功并记入历史的代码
+    codeHistory.append(statement.source());
+    if(!isPCModified)
+    {
+        //默认顺序执行
+        ++PC;
+    }
+    cout << "PC now at index: " << PC << endl;
+    return 1;
+}
+
+ostream& Core::infix2Suffix(ostream& os,const string &str)
+{
     QStack<char> st;
-    
+
     read_mode mode = read_other;
     int32_t digit = 0;
     string var = "";
@@ -180,7 +228,7 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
             }
             else if(mode == read_var){
                 //ready to finish reading var
-                cout << "finish reading var: " << var << endl; 
+                cout << "finish reading var: " << var << endl;
                 os << var << ")";
                 mode = read_other;
                 var.clear();
@@ -191,24 +239,24 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
                 continue;
             }
             else if(ch == ')'){
-                while(!st.empty() && st.top() != '('){
-                    os << st.pop();
-                }
                 if(st.empty()){
                     //多余右括号不匹配
                     cerr << "blankets not match.\n";
                     throw ParseError;
                 }
+                if(iterator != str.begin() && *(iterator - 1) == '('){
+                    //空括号
+                    cerr << "empty blankets is not allowed.\n";
+                    throw ParseError;
+                }
+                while(st.top() != '('){
+                    os << st.pop();
+                }
+
                 //弹出'('
                 st.pop();
                 continue;
             }
-            //二元运算符
-//            if(st.size() < 2){
-//                //操作数缺失
-//                cerr << "operand absent." << endl;
-//                throw ParseError;
-//            }
             if(ch == '+' || ch == '-'){
                 if(iterator == str.begin() || *(iterator - 1) == '('){
                     //遇到正负号，补全操作数0
@@ -251,15 +299,8 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
     return os;
 }
 
-int32_t Core::parseExpression(const string &str)
+int32_t Core::parseSuffixExpr(const string &str)
 {
-    //先处理纯数字的表达式
-    //将中缀表达式转后缀
-    ostringstream ss;
-    Infix2Suffix(ss,str);
-    string suffix(ss.str());
-    cout << "suffix: " << suffix << endl;
-
     //TODO: 假设变量没有下划线
     //1: reading digit , 2: reading variable, 0 other cases
     read_mode mode = read_other;
@@ -267,7 +308,9 @@ int32_t Core::parseExpression(const string &str)
     string var = "";
     QStack<int32_t> st;
     int32_t op1,op2;//操作数
-    for(auto ch: suffix){
+    for(auto ch: str){
+        //()和[]分别标记变量和常量
+        //开始或结束读取变量或常量
         if(ch == '('){
             //start reading var
             mode = read_var;
@@ -289,12 +332,13 @@ int32_t Core::parseExpression(const string &str)
             continue;
         }
         else if(ch == ']'){
-            //finish reading digit 
+            //finish reading digit
             st.push(digit);
             mode = read_other;
             digit = 0;
             continue;
         }
+        //正在读取变量或常量
         if(mode == read_var){
             var.push_back(ch);
             continue;
@@ -303,7 +347,13 @@ int32_t Core::parseExpression(const string &str)
             digit = digit * 10 + (ch - '0') ;
             continue;
         }
+        //读入运算符
         //当前都为二元运算
+        if(st.size() < 2){
+            //运算符操作数不匹配
+            cerr << "Operands and operators do not match." << endl;
+            throw ParseError;
+        }
         op2 = st.pop();
         op1 = st.pop();
         //read other mode
@@ -328,7 +378,68 @@ int32_t Core::parseExpression(const string &str)
         cerr << "Empty expression.\n";
         throw ParseError;
     }
+    if(st.size() > 1){
+        cerr << "probably lack operator.\n";
+        throw ParseError;
+    }
+    //assert st.size() == 1
     return st.top();
+}
+
+int32_t Core::parseInfixExpr(const string &str)
+{
+    //先处理纯数字的表达式
+    //将中缀表达式转后缀
+    ostringstream ss;
+    infix2Suffix(ss,str);
+    string suffix(ss.str());
+    cout << "suffix: " << suffix << endl;
+    return parseSuffixExpr(suffix);
+}
+
+bool Core::parseBoolExpr(const string &expr)
+{
+    auto it = expr.begin();
+    for(;it != expr.end();++it){
+        if(*it == '<' || *it == '=' || *it == '>'){
+            break;
+        }
+    }
+    if(it == expr.end()){
+        //找不到<,=,>
+        //TODO
+        cerr << "No Comparison sign.\n";
+        throw ParseError;
+    }
+    int32_t left = parseInfixExpr(expr.substr(0,it - expr.begin()));
+    int32_t right = parseInfixExpr(expr.substr(it - expr.begin() + 1,expr.end() - 1 - it));
+
+//    std::cout << "left: " << left << std::endl;
+//    std::cout << "right: " << right << std::endl;
+    //比较大小
+    if(*it == '<'){
+        return left < right;
+    }
+    if(*it == '='){
+        return left == right;
+    }
+    if(*it == '>'){
+        return left > right;
+    }
+    return false;
+}
+
+bool Core::gotoLine(int dst)
+{
+    for(int i = PC - 1;i >= 0;--i){
+        if(dst == codeHistory[i].split(" " , QString::SkipEmptyParts)[0].toInt()){
+            PC = i;
+            return true;
+        }
+    }
+    //目标不存在
+    //TODO : throw exception when dst not exist
+    return false;
 }
 
 void Core::printVarTable() const

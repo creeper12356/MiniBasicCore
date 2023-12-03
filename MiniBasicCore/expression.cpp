@@ -28,3 +28,9 @@ ExpNode::~ExpNode()
         delete right;
     }
 }
+
+Op::Op(char s, int l)
+    :sign(s),level(l)
+{
+
+}
