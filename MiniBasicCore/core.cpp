@@ -8,7 +8,7 @@ Core::Core()
 }
 int Core::exec(int argc,char* argv[])
 {
-    //0 stdin, 1 file
+    //0 for stdin, 1 for file
     int input_mode = 0;
     //初始化
     string input = "";
@@ -93,12 +93,12 @@ int Core::exec(int argc,char* argv[])
                 int32_t input;
                 //TODO 前端保证，用户只能输入一个整数
                 cin >> input;
-                if(!cin.good()){
-                    //输入异常
-                    cin.clear();
-                    cin.get();
-                    throw ParseError;
-                }
+//                if(!cin.good()){
+//                    输入异常
+//                    cin.clear();
+//                    cin.get();
+//                    throw ParseError;
+//                }
                 cin.get();
                 varTable[statement.object().toStdString()] = input;
             }
@@ -134,8 +134,9 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
     read_mode mode = read_other;
     int32_t digit = 0;
     string var = "";
-
-    for(auto ch:str){
+    char ch;
+    for(auto iterator = str.begin();iterator != str.end();++iterator){
+        ch = *iterator;
         if(isalpha(ch)){
             if(mode == read_var){
                 //already reading var
@@ -201,6 +202,10 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
                 st.pop();
             }
             else if(ch == '+' || ch == '-'){
+                if(iterator == str.begin() || *(iterator - 1) == '('){
+                    //遇到正负号，补全操作数0
+                    os << "[0]";
+                }
                 while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '%' || st.top() == '+' || st.top() == '-')){
                     os << st.pop();
                 }
@@ -245,7 +250,7 @@ int32_t Core::parseExpression(const string &str)
     ostringstream ss;
     Infix2Suffix(ss,str);
     string suffix(ss.str());
-//    cout << "suffix: " << suffix << endl;
+    cout << "suffix: " << suffix << endl;
 
     //TODO: 假设变量没有下划线
     //1: reading digit , 2: reading variable, 0 other cases
