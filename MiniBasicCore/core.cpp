@@ -188,6 +188,7 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
 
             if(ch == '('){
                 st.push(ch);
+                continue;
             }
             else if(ch == ')'){
                 while(!st.empty() && st.top() != '('){
@@ -200,8 +201,15 @@ ostream& Core::Infix2Suffix(ostream& os,const string &str)
                 }
                 //弹出'('
                 st.pop();
+                continue;
             }
-            else if(ch == '+' || ch == '-'){
+            //二元运算符
+//            if(st.size() < 2){
+//                //操作数缺失
+//                cerr << "operand absent." << endl;
+//                throw ParseError;
+//            }
+            if(ch == '+' || ch == '-'){
                 if(iterator == str.begin() || *(iterator - 1) == '('){
                     //遇到正负号，补全操作数0
                     os << "[0]";
