@@ -24,59 +24,63 @@ Core::~Core()
 }
 int Core::exec(int argc,char* argv[])
 {
-    //0 for stdin, 1 for file
-    int input_mode = 0;
-    //初始化
-    string input = "";
-    ifstream fin;
-    //输入流
-    istream* in = nullptr;
-
-    if(argc == 1){
-        input_mode = 0;
-        in = &cin;
-    }
-    else if(argc == 3 && strcmp(argv[1],"-i") == 0){
-        input_mode = 1;
-        fin.open(argv[2]);
-        if(!fin){
-            cerr << argv[2] << " does not exists.\n";
-            return -1;
-        }
-        in = &fin;
-    }
-    else {
-        cerr << "Wrong arguments.Abort.\n";
-        return -1;
-    }
-
+    string cmd;
     while(true){
-        //只有标准输入模式打印终端提示符
-        if(input_mode == 0){
-            cout << ">>>";
+        cout << ">>>";
+        if(!getline(cin,cmd)){
+            break;
         }
-        if(PC == codeHistory.size()){
-            if(!std::getline(*in,input)){
-                break;
-            }
+        if(cmd == "exit"){
+            break;
         }
-        else{
-            input = codeHistory[PC].toStdString();
-        }
-        try {
-                if(!exeCode(input)){
-                    //退出
+        else if(cmd == "load"){
+            //TODO
+            //从文件中加载代码
+            //清空原来代码
+            codes.clear();
+            string code;
+            while(true){
+                cout << "$";
+                if(!getline(cin,code)){
+                    //TODO exception when typing ctrlD
+                    cin.clear();
                     break;
                 }
+
+                if(code == ""){
+                    //空行
+                    break;
+                }
+                codes.append(QString::fromStdString(code));
             }
-        catch(Exception e){
-            cerr << "throw Exception " << int(e) << endl;
-            continue;
         }
+        else if(cmd == "list"){
+            //列出加载的代码
+            for(auto code:codes){
+                cout << code.toStdString() << endl;
+            }
+        }
+        else if(cmd == "run"){
+            //重置PC
+            PC = 0;
+            while(PC != codes.size()){
+                try {
+                        if(!exeCode(codes[PC].toStdString())){
+                            //退出
+                            break;
+                        }
+                    }
+                catch(Exception e){
+                    cerr << "throw Exception " << int(e) << endl;
+                    ++PC;
+                    continue;
+                }
+            }
+            cout << "run finished.\n";
+        }
+
     }
-    if(input_mode == 1){
-        fin.close();
-    }
+    cout << "logout\n";
     return 0;
 }
 
@@ -86,22 +90,12 @@ int Core::exeCode(const string &code)
     Statement statement = Statement(QString::fromStdString(code));
     if(statement.type() == "CMD"){
         //调试使用的命令
-        if(statement.object() == "EXIT"){
-            cout << "logout" << endl;
-            return 0;
-        }
-        else if(statement.object() == "VARTABLE"){
+        if(statement.object() == "VARTABLE"){
             printVarTable();
         }
-        else if(statement.object() == "CODEHISTORY"){
-            printCodeHistory();
-        }
-        return 1;
     }
-    if(statement.type() == "REM"){
-        //注释
-        //注释不加入运行历史中
-        return 1;
+    else if(statement.type() == "REM"){
+        //do nothing
     }
     else if(statement.type() == "LET"){
         int assignmentIndex = -1;
@@ -164,14 +158,12 @@ int Core::exeCode(const string &code)
         cerr << "UnknownStatementType " << statement.type().toStdString() << "." << endl;
         throw UnknownStatementType;
     }
-    //执行成功并记入历史的代码
-    codeHistory.append(statement.source());
     if(!isPCModified)
     {
         //默认顺序执行
         ++PC;
     }
-    cout << "PC now at index: " << PC << endl;
+//    cout << "PC now at index: " << PC << endl;
     return 1;
 }
 
@@ -221,14 +213,14 @@ ostream& Core::infix2Suffix(ostream& os,const string &str)
         else{
             if(mode == read_digit){
                 //ready to finish reading digit
-                cout << "finish reading digit: " << digit << endl;
+//                cout << "finish reading digit: " << digit << endl;
                 os << digit << "]";
                 mode = read_other;
                 digit = 0;
             }
             else if(mode == read_var){
                 //ready to finish reading var
-                cout << "finish reading var: " << var << endl;
+//                cout << "finish reading var: " << var << endl;
                 os << var << ")";
                 mode = read_other;
                 var.clear();
@@ -393,7 +385,7 @@ int32_t Core::parseInfixExpr(const string &str)
     ostringstream ss;
     infix2Suffix(ss,str);
     string suffix(ss.str());
-    cout << "suffix: " << suffix << endl;
+//    cout << "suffix: " << suffix << endl;
     return parseSuffixExpr(suffix);
 }
 
@@ -431,14 +423,15 @@ bool Core::parseBoolExpr(const string &expr)
 
 bool Core::gotoLine(int dst)
 {
-    for(int i = PC - 1;i >= 0;--i){
-        if(dst == codeHistory[i].split(" " , QString::SkipEmptyParts)[0].toInt()){
+    for(int i = 0;i <= codes.size();++i){
+        if(dst == codes[i].split(" " , QString::SkipEmptyParts)[0].toInt()){//行号
             PC = i;
             return true;
         }
     }
     //目标不存在
     //TODO : throw exception when dst not exist
+    cerr << "destination not exist.\n";
     return false;
 }
 
@@ -449,15 +442,6 @@ void Core::printVarTable() const
     cout << "----\t-----\n";
     for(auto name:varTable.keys()){
         cout << name << "\t" << varTable[name] << endl;
-    }
-    cout << "---\tEND\t---" << endl;
-}
-
-void Core::printCodeHistory() const
-{
-    cout << "---CODEHISTORY---" << endl;
-    for(auto code: codeHistory){
-        cout << code.toStdString() << endl;
     }
     cout << "---\tEND\t---" << endl;
 }

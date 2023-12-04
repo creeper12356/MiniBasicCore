@@ -17,8 +17,7 @@ class Core
 {
 private:
     QMap<string,int32_t> varTable;//变量表
-//    QVector<QString> codeHistory;//有序存储执行成功的所有代码
-    QMap<int,QString> codes;//TODO
+    QVector<QString> codes;//TODO
     QVector<Op*> operators;//所有合法的运算符
 
     //指向codeHistory中下一条指令
@@ -45,7 +44,6 @@ private:
     bool gotoLine(int dst);
 private:
     void printVarTable() const;
-    void printCodeHistory() const;
 };
 
 #endif // CORE_H
