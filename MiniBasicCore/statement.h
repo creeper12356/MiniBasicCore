@@ -8,10 +8,18 @@
 typedef QString StatementType;
 enum Exception{
     ParseError,
+    WrongAssignSyntax,//错误的赋值语法
+    WrongCmpSyntax,//错误的比较语法
+    WrongIfSyntax,//错误的if...then语法
+    WrongVarName,//非法变量将名
+    EmptyExpr,//空表达式
+    BracketsNotMatch,//括号不匹配
+    UnknownOp,//未知运算符
     UseBeforeDeclare,
     NoLineNum,
     WrongLineNum,	//行号要求位于1-1000,000之间
-    UnknownStatementType
+    UnknownStatementType,
+    WrongGotoDst,
 };
 
 class Statement{

@@ -41,7 +41,7 @@ private:
     //解析简单的条件表达式
     bool parseBoolExpr(const string& expr);
     //改变PC
-    bool gotoLine(int dst);
+    void gotoLine(int dst);
 private:
     void printVarTable() const;
 };

@@ -24,9 +24,14 @@ Core::~Core()
 }
 int Core::exec(int argc,char* argv[])
 {
+    bool silentFlag = false;
+    if(argc == 2 && strcmp(argv[1],"-s") == 0){
+        //-s选项，不进行任何调试输出
+        silentFlag = true;
+    }
     string cmd;
     while(true){
-        cout << ">>>";
+        (!silentFlag) && cout << ">>>";
         if(!getline(cin,cmd)){
             break;
         }
@@ -34,21 +39,20 @@ int Core::exec(int argc,char* argv[])
             break;
         }
         else if(cmd == "load"){
-            //TODO
-            //从文件中加载代码
+            //从标准输入加载代码
             //清空原来代码
             codes.clear();
             string code;
             while(true){
-                cout << "$";
+                (!silentFlag) && cout << "$";
                 if(!getline(cin,code)){
                     //TODO exception when typing ctrlD
                     cin.clear();
                     break;
                 }
 
+                //遇到空行停止接收输入
                 if(code == ""){
-                    //空行
                     break;
                 }
                 codes.append(QString::fromStdString(code));
@@ -63,6 +67,8 @@ int Core::exec(int argc,char* argv[])
         else if(cmd == "run"){
             //重置PC
             PC = 0;
+            //清空变量表
+            varTable.clear();
             while(PC != codes.size()){
                 try {
                         if(!exeCode(codes[PC].toStdString())){
@@ -76,7 +82,7 @@ int Core::exec(int argc,char* argv[])
                     continue;
                 }
             }
-            cout << "run finished.\n";
+            (!silentFlag) && cout << "run finished.\n";
         }
 
     }
@@ -108,7 +114,7 @@ int Core::exeCode(const string &code)
         }
         if(assignmentIndex == -1){
             //没有赋值号
-            throw ParseError;
+            throw WrongAssignSyntax;
         }
         string left = statement.object().left(assignmentIndex).toStdString();
         string right = statement.object().right(statement.object().size() - assignmentIndex - 1).toStdString();
@@ -138,14 +144,14 @@ int Core::exeCode(const string &code)
         varTable[statement.object().toStdString()] = input;
     }
     else if(statement.type() == "GOTO"){
-        //TODO: check dst
-        isPCModified = gotoLine(statement.object().toInt());
+        gotoLine(statement.object().toInt());
+        isPCModified = true;
     }
     else if(statement.type() == "IF"){
         IfStatement ifStatement(statement);
         if(parseBoolExpr(ifStatement.condition().toStdString())){
-//            std::cout << "dst == " << ifStatement.destination() << endl;
-            isPCModified = gotoLine(ifStatement.destination());
+            gotoLine(ifStatement.destination());
+            isPCModified = true;
         }
     }
     else if(statement.type() == "END"){
@@ -155,7 +161,6 @@ int Core::exeCode(const string &code)
 
     else{
         //未知关键字
-        cerr << "UnknownStatementType " << statement.type().toStdString() << "." << endl;
         throw UnknownStatementType;
     }
     if(!isPCModified)
@@ -163,7 +168,6 @@ int Core::exeCode(const string &code)
         //默认顺序执行
         ++PC;
     }
-//    cout << "PC now at index: " << PC << endl;
     return 1;
 }
 
@@ -184,8 +188,8 @@ ostream& Core::infix2Suffix(ostream& os,const string &str)
             }
             else if(mode == read_digit){
                 //使用非法变量名
-                cerr << "directly switch from alpha to digit.\n";
-                throw ParseError;
+//                cerr << "directly switch from alpha to digit.\n";
+                throw WrongVarName;
             }
             else{
                 //start to read var
@@ -233,13 +237,11 @@ ostream& Core::infix2Suffix(ostream& os,const string &str)
             else if(ch == ')'){
                 if(st.empty()){
                     //多余右括号不匹配
-                    cerr << "blankets not match.\n";
-                    throw ParseError;
+                    throw BracketsNotMatch;
                 }
                 if(iterator != str.begin() && *(iterator - 1) == '('){
                     //空括号
-                    cerr << "empty blankets is not allowed.\n";
-                    throw ParseError;
+                    throw EmptyExpr;
                 }
                 while(st.top() != '('){
                     os << st.pop();
@@ -267,8 +269,7 @@ ostream& Core::infix2Suffix(ostream& os,const string &str)
             }
             else {
                 //未知运算符
-                cerr << "unknown operator " << ch << endl;
-                throw ParseError;
+                throw UnknownOp;
             }
         }
     }
@@ -283,8 +284,7 @@ ostream& Core::infix2Suffix(ostream& os,const string &str)
     while(!st.empty()){
         if(st.top() == '('){
             //多余左括号不匹配
-            cerr << "blankets not match.\n";
-            throw ParseError;
+            throw BracketsNotMatch;
         }
         os << st.pop();
     }
@@ -343,7 +343,6 @@ int32_t Core::parseSuffixExpr(const string &str)
         //当前都为二元运算
         if(st.size() < 2){
             //运算符操作数不匹配
-            cerr << "Operands and operators do not match." << endl;
             throw ParseError;
         }
         op2 = st.pop();
@@ -366,12 +365,9 @@ int32_t Core::parseSuffixExpr(const string &str)
         }
     }
     if(st.empty()){
-        //TODO empty num
-        cerr << "Empty expression.\n";
-        throw ParseError;
+        throw EmptyExpr;
     }
     if(st.size() > 1){
-        cerr << "probably lack operator.\n";
         throw ParseError;
     }
     //assert st.size() == 1
@@ -399,9 +395,7 @@ bool Core::parseBoolExpr(const string &expr)
     }
     if(it == expr.end()){
         //找不到<,=,>
-        //TODO
-        cerr << "No Comparison sign.\n";
-        throw ParseError;
+        throw WrongCmpSyntax;
     }
     int32_t left = parseInfixExpr(expr.substr(0,it - expr.begin()));
     int32_t right = parseInfixExpr(expr.substr(it - expr.begin() + 1,expr.end() - 1 - it));
@@ -421,18 +415,19 @@ bool Core::parseBoolExpr(const string &expr)
     return false;
 }
 
-bool Core::gotoLine(int dst)
+void Core::gotoLine(int dst)
 {
     for(int i = 0;i <= codes.size();++i){
-        if(dst == codes[i].split(" " , QString::SkipEmptyParts)[0].toInt()){//行号
+        //逐一比较行号
+        if(dst == codes[i].split(" " , QString::SkipEmptyParts)[0].toInt()){
             PC = i;
-            return true;
+            return ;
         }
     }
     //目标不存在
     //TODO : throw exception when dst not exist
     cerr << "destination not exist.\n";
-    return false;
+    throw WrongGotoDst;
 }
 
 void Core::printVarTable() const

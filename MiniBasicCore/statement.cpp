@@ -62,14 +62,12 @@ IfStatement::IfStatement(const Statement &stmt)
     QStringList parseList = _source.split(" ",QString::SkipEmptyParts);
     if(parseList[parseList.size() - 2] != "THEN"){
         //找不到合法的THEN子句
-        std::cerr << "No THEN clause detected.\n";
-        throw ParseError;
+        throw WrongIfSyntax;
     }
     bool isNum = false;
     _destination = parseList.last().toInt(&isNum);
     if(!isNum){
-        std::cerr << "Illegal destination.\n";
-        throw ParseError;
+        throw WrongGotoDst;
     }
     //去除THEN 和 destination
     parseList.removeLast();
@@ -79,10 +77,10 @@ IfStatement::IfStatement(const Statement &stmt)
     parseList.removeFirst();
     if(parseList.empty()){
         std::cerr << "Empty contition detected.\n";
-        throw ParseError;
+        throw EmptyExpr;
     }
     //合成条件表达式
     _condition = parseList.join("");
-    std::cout << "condition: " << _condition.toStdString() << std::endl;
-    std::cout << "destination: " << _destination << std::endl;
+//    std::cout << "condition: " << _condition.toStdString() << std::endl;
+//    std::cout << "destination: " << _destination << std::endl;
 }
