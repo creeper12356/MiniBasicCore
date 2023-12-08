@@ -3,24 +3,13 @@
 #include <cstring>
 using namespace std;
 Core::Core()
-    :operators({
-               new OpPos,
-               new OpNeg,
-               new OpAdd,
-               new OpMinus,
-               new OpMulti,
-               new OpDiv,
-               new OpMod
-               })
 {
     PC = 0;
 }
 
 Core::~Core()
 {
-    for(auto op: operators){
-        delete op;
-    }
+
 }
 int Core::exec(int argc,char* argv[])
 {

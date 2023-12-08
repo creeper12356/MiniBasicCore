@@ -18,7 +18,6 @@ class Core
 private:
     QMap<string,int32_t> varTable;//变量表
     QVector<QString> codes;//TODO
-    QVector<Op*> operators;//所有合法的运算符
 
     //指向codeHistory中下一条指令
     int PC;
