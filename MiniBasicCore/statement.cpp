@@ -1,86 +1,227 @@
 #include "statement.h"
-
-Statement::Statement(const QString& src){
-    //按空格分割源，忽略多余空白字符
-    //只能忽略空格，无法忽略tab，需要在前端禁止tab输入
-    QStringList parseList = src.split(" ",QString::SkipEmptyParts);
-    int size = parseList.size();
+#include "core.h"
+#include <iostream>
+#include <QDebug>
+Statement *Statement::newStatement(const QString &src)
+{
+    QStringList argList = src.split(" " ,QString::SkipEmptyParts);
+    int size = argList.size();
     if(size == 0){
         //空行
-        //空行行号先标记成0
-        _lineNum = 0;
-        _type = "REM";
-        return ;
+        return nullptr;
     }
+    //assert size >= 1
     bool isNum;
-    _lineNum = parseList[0].toInt(&isNum);
+    int lineNum = argList[0].toInt(&isNum);
     if(!isNum){
         //第一个参数不是行号
         throw NoLineNum;
     }
-    if(_lineNum < 0 || _lineNum > 1000000){
+    if(lineNum < 0 || lineNum > 1000000){
+        //行号范围错误
         throw WrongLineNum;
     }
 
     if(size == 1){
         //只有行号
-        //TODO: 先默认合法
-        _type = "REM";
-        return ;
+        return nullptr;
     }
-
-    _type = parseList[1];
-    _source = src;
-    //去除行号和指令关键字
-    parseList.removeFirst();
-    parseList.removeFirst();
-
+    //assert(size >= 2)
+    StatementType type = argList[1];
+    //去除行号和类型
+    argList.removeFirst();
+    argList.removeFirst();
     //替换余数运算符
-    for(int i = 0;i < parseList.size();++i){
-        if(parseList[i] == "MOD"){
-            std::cout << "replace.";
-            parseList.replace(i,"%");
+    for(auto it = argList.begin(); it != argList.end();++it){
+        if(*it == "MOD"){
+            argList.replace(it - argList.begin(),"%");
         }
     }
-    //处理复杂运算符
-    _object = parseList.join("");
+    if(type == "REM"){
+        return new RemStatement(lineNum,src,argList);
+    }
+    else if(type == "LET"){
+        return new LetStatement(lineNum,src,argList);
+    }
+    else if(type == "PRINT"){
+        return new PrintStatement(lineNum,src,argList);
+    }
+    else if(type == "INPUT"){
+        return new InputStatement(lineNum,src,argList);
+    }
+    else if(type == "GOTO"){
+        return new GotoStatement(lineNum,src,argList);
+    }
+    else if(type == "IF"){
+        return new IfStatement(lineNum,src,argList);
+    }
+    else if(type == "END"){
+        return new EndStatement(lineNum,src);
+    }
+    else{
+        //未知语句类型
+        throw UnknownStatementType;
+    }
+
 }
 
-Statement::Statement(const Statement& other):
-    _lineNum(other.lineNum()),
-    _type(other.type()),
-    _source(other.source()),
-    _object(other.object())
+Statement::Statement(int lineNum, StatementType type, const QString &source)
+    :_lineNum(lineNum)
+    ,_type(type)
+    ,_source(source)
 {
 }
 
-IfStatement::IfStatement(const Statement &stmt)
-    :Statement(stmt)
+
+
+RemStatement::RemStatement(int lineNum, const QString& source, const QStringList &argList)
+    :Statement(lineNum,"REM",source)
+    ,_comment(argList.join(" "))
 {
-    //assert parseList.size() >= 2
-    //TODO: 避免重复解析
-    QStringList parseList = _source.split(" ",QString::SkipEmptyParts);
-    if(parseList[parseList.size() - 2] != "THEN"){
+}
+
+int RemStatement::exec(Core *context)
+{
+    context->PC += 1;
+    return 1;
+}
+
+
+LetStatement::LetStatement(int lineNum, const QString &source, const QStringList &argList)
+    :Statement(lineNum,"LET",source)
+{
+    QString obj = argList.join("");
+    int assignmentIndex = -1;
+    for(auto it = obj.begin();it != obj.end();++it){
+        if(*it == '='){
+            assignmentIndex = it - obj.begin();
+            break;
+        }
+    }
+    if(assignmentIndex == -1){
+        //没有赋值号
+        throw WrongAssignSyntax;
+    }
+    _left = obj.left(assignmentIndex);
+    _right = obj.right(obj.size() - assignmentIndex - 1);
+//    先保证解析正确再赋值
+//    int parseRes = parseInfixExpr(right);
+    //    varTable[left] = parseRes;
+}
+
+int LetStatement::exec(Core *context)
+{
+    context->PC += 1;
+    //TODO : exception handler
+
+    //先解析,解析无误后再赋值
+    int32_t parseRes = context->parseInfixExpr(_right);
+    context->varTable[_left] = parseRes;
+    return 1;
+}
+
+PrintStatement::PrintStatement(int lineNum, const QString &source, const QStringList &argList)
+    :Statement(lineNum,"PRINT",source)
+    ,_expr(argList.join(""))
+{
+}
+
+int PrintStatement::exec(Core *context)
+{
+    context->PC += 1;
+    std::cout << context->parseInfixExpr(_expr) << std::endl;
+    return 1;
+}
+
+InputStatement::InputStatement(int lineNum, const QString &source, const QStringList &argList)
+    :Statement(lineNum,"INPUT",source)
+    ,_expr(argList.join(""))
+{
+}
+
+int InputStatement::exec(Core *context)
+{
+    //TODO 检查destination合法性
+    std::cout << "?";
+    int32_t input;
+    //TODO 前端保证，用户只能输入一个整数
+    std::cin >> input;
+    std::cin.get();
+    context->varTable[_expr] = input;
+    context->PC += 1;
+    return 1;
+}
+IfStatement::IfStatement(int lineNum,const QString& source,QStringList argList)
+    :Statement(lineNum,"IF",source)
+{
+    //assert argList.size() >= 2
+    if(argList.size() < 2){
+        throw WrongIfSyntax;
+    }
+    if(*(argList.end() - 2) != "THEN"){
         //找不到合法的THEN子句
         throw WrongIfSyntax;
     }
+
     bool isNum = false;
-    _destination = parseList.last().toInt(&isNum);
+    _destination = argList.last().toInt(&isNum);
     if(!isNum){
         throw WrongGotoDst;
     }
     //去除THEN 和 destination
-    parseList.removeLast();
-    parseList.removeLast();
-    //去除行号和IF
-    parseList.removeFirst();
-    parseList.removeFirst();
-    if(parseList.empty()){
-        std::cerr << "Empty contition detected.\n";
+    argList.removeLast();
+    argList.removeLast();
+    if(argList.empty()){
+        //空条件
         throw EmptyExpr;
     }
     //合成条件表达式
-    _condition = parseList.join("");
-//    std::cout << "condition: " << _condition.toStdString() << std::endl;
-//    std::cout << "destination: " << _destination << std::endl;
+    _condition = argList.join("");
+}
+
+int IfStatement::exec(Core *context)
+{
+    try{
+        if(context->parseBoolExpr(_condition)){
+            context->gotoLine(_destination);
+        }
+        else{
+            context->PC += 1;
+        }
+    }
+    catch(Exception e){
+        context->PC += 1;
+        throw e;
+    }
+    return 1;
+}
+GotoStatement::GotoStatement(int lineNum, const QString &source, const QStringList &argList)
+    :Statement(lineNum,"GOTO",source)
+{
+    bool isNum = false;
+    //assert argList.size == 1
+    if(argList.size() != 1){
+        throw WrongGotoDst;
+    }
+    _destination = argList.first().toInt(&isNum);
+    if(!isNum){
+        throw WrongGotoDst;
+    }
+}
+
+int GotoStatement::exec(Core *context)
+{
+    context->gotoLine(_destination);
+    return 1;
+}
+
+EndStatement::EndStatement(int lineNum, const QString &source)
+    :Statement(lineNum,"END",source)
+{
+}
+
+int EndStatement::exec(Core *context)
+{
+    context->PC += 1;
+    return 0;
 }

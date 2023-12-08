@@ -1,7 +1,5 @@
 #ifndef STATEMENT_H
 #define STATEMENT_H
-#include <string>
-#include <iostream>
 #include <QString>
 #include <QStringList>
 
@@ -21,31 +19,78 @@ enum Exception{
     UnknownStatementType,
     WrongGotoDst,
 };
-
+class Core;
 class Statement{
 public:
-    Statement(const QString& src);
-    Statement(const Statement &other);
-public:
-    int lineNum() const{return _lineNum;}
-    const StatementType& type() const{return _type;}
-    const QString& source() const{return _source;}
-    const QString& object() const{return _object;}
+    static Statement* newStatement(const QString &src);
+
+    Statement(int lineNum, StatementType type, const QString &source);
+    virtual ~Statement(){}
+    virtual int exec(Core* context) = 0;
+    int getLineNum() const{return _lineNum;}
+    const StatementType& getType() const{return _type;}
+    const QString& getSource() const{return _source;}
 protected:
     int _lineNum;
     StatementType _type;
     QString _source;
-    QString _object;
 };
-class IfStatement:public Statement{
+
+class RemStatement: public Statement{
+private:
+    //注释内容
+    QString _comment;
 public:
-    const QString& condition() const{return _condition;}
-    int destination() const{return _destination;}
+    RemStatement(int lineNum, const QString &source, const QStringList& argList);
+    int exec(Core* context) override;
+};
+
+class LetStatement: public Statement{
+private:
+    QString _left;
+    QString _right;
+public:
+    LetStatement(int lineNum , const QString& source, const QStringList& argList);
+    int exec(Core* context) override;
+};
+
+class PrintStatement: public Statement{
+private:
+    QString _expr;
+public:
+    PrintStatement(int lineNum,const QString& source,const QStringList& argList);
+    int exec(Core* context) override;
+};
+
+class InputStatement: public Statement{
+private:
+    QString _expr;
+public:
+    InputStatement(int lineNum,const QString& source,const QStringList& argList);
+    int exec(Core* context) override;
+};
+
+class GotoStatement: public Statement{
+private:
+    int _destination;
+public:
+    GotoStatement(int lineNum,const QString& source,const QStringList& argList);
+    int exec(Core* context) override;
+};
+
+class IfStatement:public Statement{
 private:
     QString _condition;
     int _destination;
 public:
-    IfStatement(const Statement& stmt);
+    IfStatement(int lineNum, const QString& source, QStringList argList);
+    int exec(Core* context) override;
+};
+
+class EndStatement: public Statement{
+public:
+    EndStatement(int lineNum,const QString& source);
+    int exec(Core* context) override;
 };
 
 #endif // STATEMENT_H

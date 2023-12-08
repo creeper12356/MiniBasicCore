@@ -1,6 +1,7 @@
 #include "core.h"
 #include <fstream>
 #include <cstring>
+#include <QDebug>
 using namespace std;
 Core::Core()
 {
@@ -60,14 +61,13 @@ int Core::exec(int argc,char* argv[])
             varTable.clear();
             while(PC != codes.size()){
                 try {
-                        if(!exeCode(codes[PC].toStdString())){
+                        if(!exeCode(codes[PC])){
                             //退出
                             break;
                         }
                     }
                 catch(Exception e){
                     cerr << "throw Exception " << int(e) << endl;
-                    ++PC;
                     continue;
                 }
             }
@@ -79,142 +79,77 @@ int Core::exec(int argc,char* argv[])
     return 0;
 }
 
-int Core::exeCode(const string &code)
+int Core::exeCode(const QString &code)
 {
-    bool isPCModified = false;
-    Statement statement = Statement(QString::fromStdString(code));
-    if(statement.type() == "CMD"){
-        //调试使用的命令
-        if(statement.object() == "VARTABLE"){
-            printVarTable();
-        }
-    }
-    else if(statement.type() == "REM"){
-        //do nothing
-    }
-    else if(statement.type() == "LET"){
-        int assignmentIndex = -1;
-        //查找赋值号位置
-        for(int i = 0;i < statement.object().size();++i){
-            if(statement.object()[i] == '='){
-                assignmentIndex = i;
-                break;
-            }
-        }
-        if(assignmentIndex == -1){
-            //没有赋值号
-            throw WrongAssignSyntax;
-        }
-        string left = statement.object().left(assignmentIndex).toStdString();
-        string right = statement.object().right(statement.object().size() - assignmentIndex - 1).toStdString();
-        //先保证解析正确再赋值
-        int parseRes = parseInfixExpr(right);
-        varTable[left] = parseRes;
-    }
-    else if(statement.type() == "PRINT"){
-        cout << parseInfixExpr(statement.object().toStdString()) << endl;
-    }
-    else if(statement.type() == "INPUT"){
-        //TODO 检查destination合法性
-//                for(auto ch: statement.object()){
-
-//                }
-        cout << "?";
-        int32_t input;
-        //TODO 前端保证，用户只能输入一个整数
-        cin >> input;
-//                if(!cin.good()){
-//                    输入异常
-//                    cin.clear();
-//                    cin.get();
-//                    throw ParseError;
-//                }
-        cin.get();
-        varTable[statement.object().toStdString()] = input;
-    }
-    else if(statement.type() == "GOTO"){
-        gotoLine(statement.object().toInt());
-        isPCModified = true;
-    }
-    else if(statement.type() == "IF"){
-        IfStatement ifStatement(statement);
-        if(parseBoolExpr(ifStatement.condition().toStdString())){
-            gotoLine(ifStatement.destination());
-            isPCModified = true;
-        }
-    }
-    else if(statement.type() == "END"){
-        //结束
+    Statement* statement = Statement::newStatement(code);
+    if(statement == nullptr){
+        //TODO
         return 0;
     }
-
-    else{
-        //未知关键字
-        throw UnknownStatementType;
-    }
-    if(!isPCModified)
-    {
-        //默认顺序执行
-        ++PC;
-    }
-    return 1;
+    int res = statement->exec(this);
+    delete statement;
+//    if(statement.type() == "CMD"){
+//        //调试使用的命令
+//        if(statement.object() == "VARTABLE"){
+//            printVarTable();
+//        }
+//    }
+    return res;
 }
 
-ostream& Core::infix2Suffix(ostream& os,const string &str)
+QString Core::infix2Suffix(const QString &str)
 {
-    QStack<char> st;
+    QStack<QChar> st;
+    QString ret = "";
 
     read_mode mode = read_other;
     int32_t digit = 0;
-    string var = "";
-    char ch;
+    QString var = "";
+    QChar ch;
     for(auto iterator = str.begin();iterator != str.end();++iterator){
         ch = *iterator;
-        if(isalpha(ch)){
+        if(ch.isLetter()){
             if(mode == read_var){
                 //already reading var
                 var.push_back(ch);
             }
             else if(mode == read_digit){
                 //使用非法变量名
-//                cerr << "directly switch from alpha to digit.\n";
                 throw WrongVarName;
             }
             else{
                 //start to read var
-                os << "(";
+                ret.append("(");
                 mode = read_var;
                 var.push_back(ch);
             }
         }
-        else if(isdigit(ch)){
+        else if(ch.isDigit()){
             if(mode == read_var){
                 //already reading var
                 var.push_back(ch);
             }
             else if(mode == read_digit){
                 //already reading digit
-                digit = digit * 10 + (ch - '0');
+                digit = digit * 10 + (ch.unicode() - '0');
             }
             else{
                 //start to read digit
                 mode = read_digit;
-                os << "[";
-                digit = digit * 10 + (ch - '0');
+                ret.append("[");
+                digit = digit * 10 + (ch.unicode() - '0');
             }
         }
         else{
             if(mode == read_digit){
                 //ready to finish reading digit
-//                cout << "finish reading digit: " << digit << endl;
-                os << digit << "]";
+                ret.append(QString::number(digit) + "]");
                 mode = read_other;
                 digit = 0;
             }
             else if(mode == read_var){
                 //ready to finish reading var
-//                cout << "finish reading var: " << var << endl;
-                os << var << ")";
+                ret.append(var + ")");
                 mode = read_other;
                 var.clear();
             }
@@ -233,7 +168,7 @@ ostream& Core::infix2Suffix(ostream& os,const string &str)
                     throw EmptyExpr;
                 }
                 while(st.top() != '('){
-                    os << st.pop();
+                    ret.append(st.pop());
                 }
 
                 //弹出'('
@@ -243,16 +178,16 @@ ostream& Core::infix2Suffix(ostream& os,const string &str)
             if(ch == '+' || ch == '-'){
                 if(iterator == str.begin() || *(iterator - 1) == '('){
                     //遇到正负号，补全操作数0
-                    os << "[0]";
+                    ret.append("[0]");
                 }
                 while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '%' || st.top() == '+' || st.top() == '-')){
-                    os << st.pop();
+                    ret.append(st.pop());
                 }
                 st.push(ch);
             }
             else if(ch == '*' || ch == '/' || ch == '%'){
                 while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '%')){
-                    os << st.pop();
+                    ret.append(st.pop());
                 }
                 st.push(ch);
             }
@@ -264,10 +199,10 @@ ostream& Core::infix2Suffix(ostream& os,const string &str)
     }
     //处理最后一个变量
     if(mode == read_var){
-        os << var << ")";
+        ret.append(var + ")");
     }
     else if(mode == read_digit){
-        os << digit << "]";
+        ret.append(QString::number(digit) + "]");
     }
     //弹出剩余运算符
     while(!st.empty()){
@@ -275,18 +210,18 @@ ostream& Core::infix2Suffix(ostream& os,const string &str)
             //多余左括号不匹配
             throw BracketsNotMatch;
         }
-        os << st.pop();
+        ret.append(st.pop());
     }
-    return os;
+    return ret;
 }
 
-int32_t Core::parseSuffixExpr(const string &str)
+int32_t Core::parseSuffixExpr(const QString &str)
 {
     //TODO: 假设变量没有下划线
     //1: reading digit , 2: reading variable, 0 other cases
     read_mode mode = read_other;
     int32_t digit = 0;
-    string var = "";
+    QString var = "";
     QStack<int32_t> st;
     int32_t op1,op2;//操作数
     for(auto ch: str){
@@ -325,7 +260,7 @@ int32_t Core::parseSuffixExpr(const string &str)
             continue;
         }
         if(mode == read_digit){
-            digit = digit * 10 + (ch - '0') ;
+            digit = digit * 10 + (ch.unicode() - '0') ;
             continue;
         }
         //读入运算符
@@ -363,18 +298,13 @@ int32_t Core::parseSuffixExpr(const string &str)
     return st.top();
 }
 
-int32_t Core::parseInfixExpr(const string &str)
+int32_t Core::parseInfixExpr(const QString &str)
 {
-    //先处理纯数字的表达式
-    //将中缀表达式转后缀
-    ostringstream ss;
-    infix2Suffix(ss,str);
-    string suffix(ss.str());
-//    cout << "suffix: " << suffix << endl;
+    QString suffix = infix2Suffix(str);
     return parseSuffixExpr(suffix);
 }
 
-bool Core::parseBoolExpr(const string &expr)
+bool Core::parseBoolExpr(const QString &expr)
 {
     auto it = expr.begin();
     for(;it != expr.end();++it){
@@ -386,11 +316,9 @@ bool Core::parseBoolExpr(const string &expr)
         //找不到<,=,>
         throw WrongCmpSyntax;
     }
-    int32_t left = parseInfixExpr(expr.substr(0,it - expr.begin()));
-    int32_t right = parseInfixExpr(expr.substr(it - expr.begin() + 1,expr.end() - 1 - it));
+    int32_t left = parseInfixExpr(expr.left(it - expr.begin()));
+    int32_t right = parseInfixExpr(expr.right(expr.end() - 1 - it));
 
-//    std::cout << "left: " << left << std::endl;
-//    std::cout << "right: " << right << std::endl;
     //比较大小
     if(*it == '<'){
         return left < right;
@@ -414,18 +342,16 @@ void Core::gotoLine(int dst)
         }
     }
     //目标不存在
-    //TODO : throw exception when dst not exist
-    cerr << "destination not exist.\n";
     throw WrongGotoDst;
 }
 
 void Core::printVarTable() const
 {
-    cout << "---VARTABLE---" << endl;
-    cout << "name\tvalue\n";
-    cout << "----\t-----\n";
-    for(auto name:varTable.keys()){
-        cout << name << "\t" << varTable[name] << endl;
-    }
-    cout << "---\tEND\t---" << endl;
+//    cout << "---VARTABLE---" << endl;
+//    cout << "name\tvalue\n";
+//    cout << "----\t-----\n";
+//    for(auto name:varTable.keys()){
+//        cout << name << "\t" << varTable[name] << endl;
+//    }
+//    cout << "---\tEND\t---" << endl;
 }
