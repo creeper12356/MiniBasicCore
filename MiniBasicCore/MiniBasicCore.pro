@@ -28,4 +28,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     core.h \
     expression.h \
+    inc.h \
     statement.h

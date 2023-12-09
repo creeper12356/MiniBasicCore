@@ -1,5 +1,7 @@
 #include "core.h"
-using namespace std;
+#include "statement.h"
+#include "expression.h"
+
 Core::Core()
 {
     PC = 0;
@@ -101,12 +103,6 @@ int Core::exeCode(const QString &code)
     }
     int res = statement->exec(this);
     delete statement;
-//    if(statement.type() == "CMD"){
-//        //调试使用的命令
-//        if(statement.object() == "VARTABLE"){
-//            printVarTable();
-//        }
-//    }
     return res;
 }
 

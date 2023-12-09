@@ -1,18 +1,7 @@
 #ifndef CORE_H
 #define CORE_H
-#include <iostream>
-#include <string>
-
-#include <QProcess>
-#include <QDebug>
-#include <QVector>
-#include <QStack>
-#include <QMap>
-
-#include "statement.h"
-#include "expression.h"
+#include "inc.h"
 using namespace std;
-enum read_mode{read_other = 0,read_digit,read_var};
 class Core
 {
     friend class RemStatement;
@@ -40,9 +29,9 @@ private:
     //将中缀表达式转成后缀表达式，输出到os
     QString infix2Suffix(const QString& infix);
     //解析后缀表达式，返回运算结果
-    int32_t parseSuffixExpr(const QString& expr);
+    int32_t parseSuffixExpr(const QString& suffix);
     //解析中缀表达式，返回运算结果
-    int32_t parseInfixExpr(const QString& expr);
+    int32_t parseInfixExpr(const QString& infix);
     //解析简单的条件表达式
     bool parseBoolExpr(const QString &expr);
     //将PC设为dst

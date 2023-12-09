@@ -1,5 +1,6 @@
 #include "statement.h"
 #include "core.h"
+
 Statement *Statement::newStatement(const QString &src)
 {
     QStringList argList = src.split(" " ,QString::SkipEmptyParts);
