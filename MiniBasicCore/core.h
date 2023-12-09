@@ -2,9 +2,9 @@
 #define CORE_H
 #include <iostream>
 #include <string>
-#include <sstream>
-#include <ostream>
 
+#include <QProcess>
+#include <QDebug>
 #include <QVector>
 #include <QStack>
 #include <QMap>

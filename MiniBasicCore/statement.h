@@ -9,7 +9,7 @@ enum Exception{
     WrongAssignSyntax,//错误的赋值语法
     WrongCmpSyntax,//错误的比较语法
     WrongIfSyntax,//错误的if...then语法
-    WrongVarName,//非法变量将名
+    WrongVarName,//非法变量名
     EmptyExpr,//空表达式
     BracketsNotMatch,//括号不匹配
     UnknownOp,//未知运算符

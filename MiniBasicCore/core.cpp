@@ -1,7 +1,4 @@
 #include "core.h"
-#include <fstream>
-#include <cstring>
-#include <QDebug>
 using namespace std;
 Core::Core()
 {
@@ -28,6 +25,9 @@ int Core::exec(int argc,char* argv[])
         if(cmd == "exit"){
             break;
         }
+        else if(cmd == "clear"){
+            QProcess::execute("clear");
+        }
         else if(cmd == "load"){
             //从标准输入加载代码
             //清空原来代码
@@ -43,6 +43,18 @@ int Core::exec(int argc,char* argv[])
 
                 //遇到空行停止接收输入
                 if(code == ""){
+                    break;
+                }
+                codes.append(QString::fromStdString(code));
+            }
+        }
+        else if(cmd == "append"){
+            string code;
+            while(true){
+                (!silentFlag) && cout << "$";
+                getline(cin,code);
+                if(code == ""){
+                    //空行停止接收输入
                     break;
                 }
                 codes.append(QString::fromStdString(code));
@@ -335,7 +347,7 @@ bool Core::parseBoolExpr(const QString &expr)
 
 void Core::gotoLine(int dst)
 {
-    for(int i = 0;i <= codes.size();++i){
+    for(int i = 0;i < codes.size();++i){
         //逐一比较行号
         if(dst == codes[i].split(" " , QString::SkipEmptyParts)[0].toInt()){
             PC = i;
