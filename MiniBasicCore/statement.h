@@ -5,7 +5,7 @@
 
 typedef QString StatementType;
 enum Exception{
-    ParseError,
+    ParseError = 0, //解析错误
     WrongAssignSyntax,//错误的赋值语法
     WrongCmpSyntax,//错误的比较语法
     WrongIfSyntax,//错误的if...then语法

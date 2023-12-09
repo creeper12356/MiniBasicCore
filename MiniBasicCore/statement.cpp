@@ -111,12 +111,12 @@ LetStatement::LetStatement(int lineNum, const QString &source, const QStringList
 
 int LetStatement::exec(Core *context)
 {
-    context->PC += 1;
     //TODO : exception handler
 
     //先解析,解析无误后再赋值
     int32_t parseRes = context->parseInfixExpr(_right);
     context->varTable[_left] = parseRes;
+    context->PC += 1;
     return 1;
 }
 
@@ -128,8 +128,8 @@ PrintStatement::PrintStatement(int lineNum, const QString &source, const QString
 
 int PrintStatement::exec(Core *context)
 {
-    context->PC += 1;
     std::cout << context->parseInfixExpr(_expr) << std::endl;
+    context->PC += 1;
     return 1;
 }
 
@@ -181,17 +181,11 @@ IfStatement::IfStatement(int lineNum,const QString& source,QStringList argList)
 
 int IfStatement::exec(Core *context)
 {
-    try{
-        if(context->parseBoolExpr(_condition)){
-            context->gotoLine(_destination);
-        }
-        else{
-            context->PC += 1;
-        }
+    if(context->parseBoolExpr(_condition)){
+        context->gotoLine(_destination);
     }
-    catch(Exception e){
+    else{
         context->PC += 1;
-        throw e;
     }
     return 1;
 }

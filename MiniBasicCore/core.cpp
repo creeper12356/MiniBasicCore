@@ -68,6 +68,7 @@ int Core::exec(int argc,char* argv[])
                     }
                 catch(Exception e){
                     cerr << "throw Exception " << int(e) << endl;
+                    ++PC;
                     continue;
                 }
             }
