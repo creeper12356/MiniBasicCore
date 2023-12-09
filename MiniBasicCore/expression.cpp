@@ -1,10 +1,122 @@
 #include "expression.h"
-Expression::Expression()
+#include "core.h"
+QString Expression::infix2Suffix(const QString &str)
 {
-//    root = new ExpNode("");
-//    type = "NULL";
-}
+    QStack<QChar> st;
+    QString ret = "";
 
+    read_mode mode = read_other;
+    int32_t digit = 0;
+    QString var = "";
+    QChar ch;
+    for(auto iterator = str.begin();iterator != str.end();++iterator){
+        ch = *iterator;
+        if(ch.isLetter()){
+            if(mode == read_var){
+                //already reading var
+                var.push_back(ch);
+            }
+            else if(mode == read_digit){
+                //使用非法变量名
+                throw WrongVarName;
+            }
+            else{
+                //start to read var
+                ret.append("(");
+                mode = read_var;
+                var.push_back(ch);
+            }
+        }
+        else if(ch.isDigit()){
+            if(mode == read_var){
+                //already reading var
+                var.push_back(ch);
+            }
+            else if(mode == read_digit){
+                //already reading digit
+                digit = digit * 10 + (ch.unicode() - '0');
+            }
+            else{
+                //start to read digit
+                mode = read_digit;
+                ret.append("[");
+                digit = digit * 10 + (ch.unicode() - '0');
+            }
+        }
+        else{
+            if(mode == read_digit){
+                //ready to finish reading digit
+                ret.append(QString::number(digit) + "]");
+                mode = read_other;
+                digit = 0;
+            }
+            else if(mode == read_var){
+                //ready to finish reading var
+                ret.append(var + ")");
+                mode = read_other;
+                var.clear();
+            }
+
+            if(ch == '('){
+                st.push(ch);
+                continue;
+            }
+            else if(ch == ')'){
+                if(st.empty()){
+                    //多余右括号不匹配
+                    throw BracketsNotMatch;
+                }
+                if(iterator != str.begin() && *(iterator - 1) == '('){
+                    //空括号
+                    throw EmptyExpr;
+                }
+                while(st.top() != '('){
+                    ret.append(st.pop());
+                }
+
+                //弹出'('
+                st.pop();
+                continue;
+            }
+            if(ch == '+' || ch == '-'){
+                if(iterator == str.begin() || *(iterator - 1) == '('){
+                    //遇到正负号，补全操作数0
+                    ret.append("[0]");
+                }
+                while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '%' || st.top() == '+' || st.top() == '-')){
+                    ret.append(st.pop());
+                }
+                st.push(ch);
+            }
+            else if(ch == '*' || ch == '/' || ch == '%'){
+                while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '%')){
+                    ret.append(st.pop());
+                }
+                st.push(ch);
+            }
+            else {
+                //未知运算符
+                throw UnknownOp;
+            }
+        }
+    }
+    //处理最后一个变量
+    if(mode == read_var){
+        ret.append(var + ")");
+    }
+    else if(mode == read_digit){
+        ret.append(QString::number(digit) + "]");
+    }
+    //弹出剩余运算符
+    while(!st.empty()){
+        if(st.top() == '('){
+            //多余左括号不匹配
+            throw BracketsNotMatch;
+        }
+        ret.append(st.pop());
+    }
+    return ret;
+}
 Expression::Expression(const QString &str)
 {
     read_mode mode = read_other;
@@ -85,13 +197,13 @@ Expression::Expression(const QString &str)
 
     //判断表达式种类
     if(root->type == node_var){
-        this->type == exp_var;
+        this->type = exp_var;
     }
     else if(root->type == node_digit){
-        this->type == exp_digit;
+        this->type = exp_digit;
     }
     else if(root->type == node_op){
-        this->type == exp_compound;
+        this->type = exp_compound;
     }
 }
 
@@ -100,6 +212,47 @@ Expression::~Expression()
     if(root){
         delete root;
     }
+}
+
+int32_t Expression::value(Core *context, ExpNode *node)
+{
+    //assert node != nullptr
+    if(node->type == node_var){
+        if(!context->varTable.contains(node->data)){
+            //使用未定义的变量
+            throw UseBeforeDeclare;
+        }
+        else{
+            return context->varTable[node->data];
+        }
+    }
+    if(node->type == node_digit){
+        //assert node->data.isInt()
+        return node->data.toInt();
+    }
+
+    //node->type == node_op
+    if(node->data == "+"){
+        return value(context, node->left) + value(context, node->right);
+    }
+    else if(node->data == "-"){
+        return value(context, node->left) - value(context, node->right);
+    }
+    else if(node->data == "*"){
+        return value(context, node->left) * value(context, node->right);
+    }
+    else if(node->data == "/"){
+        return value(context, node->left) / value(context, node->right);
+    }
+    else if(node->data == "%"){
+        return value(context, node->left) % value(context, node->right);
+    }
+}
+
+int32_t Expression::value(Core *context)
+{
+    //assert root != nullptr
+    return value(context,root);
 }
 
 ExpNode::ExpNode(ExpNodeType t, const QString& d, ExpNode *l, ExpNode *r):

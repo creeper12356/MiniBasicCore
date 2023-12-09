@@ -71,8 +71,6 @@ Statement::Statement(int lineNum, StatementType type, const QString &source)
 {
 }
 
-
-
 RemStatement::RemStatement(int lineNum, const QString& source, const QStringList &argList)
     :Statement(lineNum,"REM",source)
     ,_comment(argList.join(" "))
@@ -85,7 +83,6 @@ int RemStatement::exec(Core *context)
     return 1;
 }
 
-
 LetStatement::LetStatement(int lineNum, const QString &source, const QStringList &argList)
     :Statement(lineNum,"LET",source)
 {
@@ -97,90 +94,184 @@ LetStatement::LetStatement(int lineNum, const QString &source, const QStringList
             break;
         }
     }
-    if(assignmentIndex == -1){
-        //没有赋值号
-        throw WrongAssignSyntax;
+    try{
+        if(assignmentIndex == -1){
+            //没有赋值号
+            throw WrongAssignSyntax;
+        }
+        QString left = obj.left(assignmentIndex);
+        QString right = obj.right(obj.size() - assignmentIndex - 1);
+
+        _leftExpr = new Expression(Expression::infix2Suffix(left));
+        _rightExpr = new Expression(Expression::infix2Suffix(right));
     }
-    _left = obj.left(assignmentIndex);
-    _right = obj.right(obj.size() - assignmentIndex - 1);
-//    先保证解析正确再赋值
-//    int parseRes = parseInfixExpr(right);
-    //    varTable[left] = parseRes;
+    catch(Exception e){
+        //构造赋值语句失败
+        _buildException = e;
+        if(_leftExpr){
+            delete _leftExpr; _leftExpr = nullptr;
+        }
+        if(_rightExpr){
+            delete _rightExpr; _rightExpr = nullptr;
+        }
+    }
+}
+
+LetStatement::~LetStatement()
+{
+    if(_leftExpr) delete _leftExpr;
+    if(_rightExpr) delete _rightExpr;
 }
 
 int LetStatement::exec(Core *context)
 {
     //TODO : exception handler
 
+    if(_leftExpr->getType() != exp_var){
+        //左值不是变量
+        throw WrongLeftValue;
+    }
     //先解析,解析无误后再赋值
-    int32_t parseRes = context->parseInfixExpr(_right);
-    context->varTable[_left] = parseRes;
+    int32_t parseRes = _rightExpr->value(context);
+    context->varTable[_leftExpr->getRootData()] = parseRes;
     context->PC += 1;
     return 1;
 }
 
 PrintStatement::PrintStatement(int lineNum, const QString &source, const QStringList &argList)
     :Statement(lineNum,"PRINT",source)
-    ,_expr(argList.join(""))
 {
+    try{
+        _expr = new Expression(Expression::infix2Suffix(argList.join("")));
+    }
+    catch(Exception e){
+        //构造打印语句失败
+        //assert(_expr == nullptr)
+        _buildException = e;
+    }
+}
+
+PrintStatement::~PrintStatement()
+{
+    if(_expr) delete _expr;
 }
 
 int PrintStatement::exec(Core *context)
 {
-    std::cout << context->parseInfixExpr(_expr) << std::endl;
+    std::cout << _expr->value(context) << std::endl;
     context->PC += 1;
     return 1;
 }
 
 InputStatement::InputStatement(int lineNum, const QString &source, const QStringList &argList)
     :Statement(lineNum,"INPUT",source)
-    ,_expr(argList.join(""))
 {
+    try{
+        _expr = new Expression(Expression::infix2Suffix(argList.join("")));
+    }
+    catch(Exception e){
+        //构造输入语句失败
+        //assert(_expr == nullptr)
+        _buildException = e;
+    }
+}
+
+InputStatement::~InputStatement()
+{
+    if(_expr) delete _expr;
 }
 
 int InputStatement::exec(Core *context)
 {
-    //TODO 检查destination合法性
+    if(_expr->getType() != exp_var){
+        throw WrongLeftValue;
+    }
     std::cout << "?";
     int32_t input;
     //TODO 前端保证，用户只能输入一个整数
     std::cin >> input;
     std::cin.get();
-    context->varTable[_expr] = input;
+    context->varTable[_expr->getRootData()] = input;
     context->PC += 1;
     return 1;
 }
 IfStatement::IfStatement(int lineNum,const QString& source,QStringList argList)
     :Statement(lineNum,"IF",source)
 {
-    //assert argList.size() >= 2
-    if(argList.size() < 2){
-        throw WrongIfSyntax;
-    }
-    if(*(argList.end() - 2) != "THEN"){
-        //找不到合法的THEN子句
-        throw WrongIfSyntax;
-    }
+    try{
+        //assert argList.size() >= 2
+        if(argList.size() < 2){
+            throw WrongIfSyntax;
+        }
+        if(*(argList.end() - 2) != "THEN"){
+            //找不到合法的THEN子句
+            throw WrongIfSyntax;
+        }
 
-    bool isNum = false;
-    _destination = argList.last().toInt(&isNum);
-    if(!isNum){
-        throw WrongGotoDst;
+        bool isNum = false;
+        _destination = argList.last().toInt(&isNum);
+        if(!isNum){
+            throw WrongGotoDst;
+        }
+        //去除THEN 和 destination
+        argList.removeLast();
+        argList.removeLast();
+        if(argList.empty()){
+            //空条件
+            throw EmptyExpr;
+        }
+
+        //合成条件表达式
+        QString condition = argList.join("");
+        //TODO conditon表达式解析
+        auto it = condition.begin();
+        for(;it != condition.end();++it){
+            if(*it == '<' || *it == '=' || *it == '>'){
+                _conditionOp = *it;
+                break;
+            }
+        }
+        if(it == condition.end()){
+            //找不到比较运算符('<','=','>')
+            throw WrongCmpSyntax;
+        }
+        _conditionLeft = new Expression(Expression::infix2Suffix(condition.left(it - condition.begin())));
+        _conditionRight = new Expression(Expression::infix2Suffix(condition.right(condition.end() - 1 - it)));
     }
-    //去除THEN 和 destination
-    argList.removeLast();
-    argList.removeLast();
-    if(argList.empty()){
-        //空条件
-        throw EmptyExpr;
+    catch(Exception e){
+        //条件语句构造异常
+        if(_conditionLeft){
+            delete _conditionLeft; _conditionLeft = nullptr;
+        }
+        if(_conditionRight){
+            delete _conditionRight; _conditionRight = nullptr;
+        }
+        _buildException = e;
     }
-    //合成条件表达式
-    _condition = argList.join("");
+}
+
+IfStatement::~IfStatement()
+{
+    if(_conditionLeft) delete _conditionLeft;
+    if(_conditionRight) delete _conditionRight;
 }
 
 int IfStatement::exec(Core *context)
 {
-    if(context->parseBoolExpr(_condition)){
+    //解析布尔表达式
+    bool parseRes;
+    if(_conditionOp == '>'){
+        parseRes = _conditionLeft->value(context) > _conditionRight->value(context);
+    }
+    else if(_conditionOp == '='){
+        parseRes = _conditionLeft->value(context) == _conditionRight->value(context);
+    }
+    else if(_conditionOp == '<'){
+        parseRes = _conditionLeft->value(context) < _conditionRight->value(context);
+    }
+
+    //条件跳转
+    if(parseRes){
         context->gotoLine(_destination);
     }
     else{
@@ -193,12 +284,17 @@ GotoStatement::GotoStatement(int lineNum, const QString &source, const QStringLi
 {
     bool isNum = false;
     //assert argList.size == 1
-    if(argList.size() != 1){
-        throw WrongGotoDst;
+    try{
+        if(argList.size() != 1){
+            throw WrongGotoDst;
+        }
+        _destination = argList.first().toInt(&isNum);
+        if(!isNum){
+            throw WrongGotoDst;
+        }
     }
-    _destination = argList.first().toInt(&isNum);
-    if(!isNum){
-        throw WrongGotoDst;
+    catch(Exception e){
+        _buildException = e;
     }
 }
 

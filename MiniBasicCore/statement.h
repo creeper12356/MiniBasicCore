@@ -1,7 +1,7 @@
 #ifndef STATEMENT_H
 #define STATEMENT_H
 #include "inc.h"
-
+#include "expression.h"
 class Statement{
 public:
     static Statement* newStatement(const QString &src);
@@ -12,10 +12,13 @@ public:
     int getLineNum() const{return _lineNum;}
     const StatementType& getType() const{return _type;}
     const QString& getSource() const{return _source;}
+    Exception getBuildException() const {return _buildException;}
 protected:
     int _lineNum;
     StatementType _type;
     QString _source;
+    //构造函数调用时发生的异常
+    Exception _buildException = NoException;
 };
 
 class RemStatement: public Statement{
@@ -29,26 +32,29 @@ public:
 
 class LetStatement: public Statement{
 private:
-    QString _left;
-    QString _right;
+    Expression* _leftExpr = nullptr;
+    Expression* _rightExpr = nullptr;
 public:
     LetStatement(int lineNum , const QString& source, const QStringList& argList);
+    ~LetStatement() override;
     int exec(Core* context) override;
 };
 
 class PrintStatement: public Statement{
 private:
-    QString _expr;
+    Expression* _expr = nullptr;
 public:
     PrintStatement(int lineNum,const QString& source,const QStringList& argList);
+    ~PrintStatement() override;
     int exec(Core* context) override;
 };
 
 class InputStatement: public Statement{
 private:
-    QString _expr;
+    Expression* _expr = nullptr;
 public:
     InputStatement(int lineNum,const QString& source,const QStringList& argList);
+    ~InputStatement() override;
     int exec(Core* context) override;
 };
 
@@ -62,10 +68,13 @@ public:
 
 class IfStatement:public Statement{
 private:
-    QString _condition;
+    Expression* _conditionLeft = nullptr;
+    Expression* _conditionRight = nullptr;
+    QChar _conditionOp;
     int _destination;
 public:
     IfStatement(int lineNum, const QString& source, QStringList argList);
+    ~IfStatement() override;
     int exec(Core* context) override;
 };
 
