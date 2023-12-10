@@ -84,6 +84,7 @@ int Core::exec(int argc,char* argv[])
                         throw codes[PC]->getBuildException();
                     }
                     else{
+                        codes[PC]->printSyntaxTree();
                         if(!codes[PC]->exec(this)){
                             //退出
                             break;

@@ -9,6 +9,7 @@ public:
     Statement(int lineNum, StatementType type, const QString &source, Exception buildException = NoException);
     virtual ~Statement(){}
     virtual int exec(Core* context) = 0;
+    virtual void printSyntaxTree() const = 0;
     int getLineNum() const{return _lineNum;}
     const StatementType& getType() const{return _type;}
     const QString& getSource() const{return _source;}
@@ -25,6 +26,7 @@ class ErrStatement: public Statement{
 public:
     ErrStatement(const QString& source, Exception buildException);
     int exec(Core *context) override;
+    void printSyntaxTree() const override;
 };
 
 class RemStatement: public Statement{
@@ -34,6 +36,7 @@ private:
 public:
     RemStatement(int lineNum, const QString &source, const QStringList& argList);
     int exec(Core* context) override;
+    void printSyntaxTree() const override;
 };
 
 class LetStatement: public Statement{
@@ -44,6 +47,7 @@ public:
     LetStatement(int lineNum , const QString& source, const QStringList& argList);
     ~LetStatement() override;
     int exec(Core* context) override;
+    void printSyntaxTree() const override;
 };
 
 class PrintStatement: public Statement{
@@ -53,6 +57,7 @@ public:
     PrintStatement(int lineNum,const QString& source,const QStringList& argList);
     ~PrintStatement() override;
     int exec(Core* context) override;
+    void printSyntaxTree() const override;
 };
 
 class InputStatement: public Statement{
@@ -62,6 +67,7 @@ public:
     InputStatement(int lineNum,const QString& source,const QStringList& argList);
     ~InputStatement() override;
     int exec(Core* context) override;
+    void printSyntaxTree() const override;
 };
 
 class GotoStatement: public Statement{
@@ -70,6 +76,7 @@ private:
 public:
     GotoStatement(int lineNum,const QString& source,const QStringList& argList);
     int exec(Core* context) override;
+    void printSyntaxTree() const override;
 };
 
 class IfStatement:public Statement{
@@ -82,12 +89,14 @@ public:
     IfStatement(int lineNum, const QString& source, QStringList argList);
     ~IfStatement() override;
     int exec(Core* context) override;
+    void printSyntaxTree() const override;
 };
 
 class EndStatement: public Statement{
 public:
     EndStatement(int lineNum,const QString& source);
     int exec(Core* context) override;
+    void printSyntaxTree() const override;
 };
 
 #endif // STATEMENT_H

@@ -91,6 +91,12 @@ int RemStatement::exec(Core *context)
     return 1;
 }
 
+void RemStatement::printSyntaxTree() const
+{
+    std::cout << _lineNum << " REM" << std::endl;
+    std::cout << "\t" << _comment.toStdString() << std::endl;
+}
+
 LetStatement::LetStatement(int lineNum, const QString &source, const QStringList &argList)
     :Statement(lineNum,"LET",source)
 {
@@ -112,9 +118,6 @@ LetStatement::LetStatement(int lineNum, const QString &source, const QStringList
 
         _leftExpr = new Expression(Expression::infix2Suffix(left));
         _rightExpr = new Expression(Expression::infix2Suffix(right));
-        //test :
-        _leftExpr->printExpTree(0);
-        _rightExpr->printExpTree(0);
     }
     catch(Exception e){
         //构造赋值语句失败
@@ -149,6 +152,13 @@ int LetStatement::exec(Core *context)
     return 1;
 }
 
+void LetStatement::printSyntaxTree() const
+{
+    std::cout << _lineNum << " LET = " << std::endl;
+    _leftExpr->printExpTree(1);
+    _rightExpr->printExpTree(1);
+}
+
 PrintStatement::PrintStatement(int lineNum, const QString &source, const QStringList &argList)
     :Statement(lineNum,"PRINT",source)
 {
@@ -172,6 +182,12 @@ int PrintStatement::exec(Core *context)
     std::cout << _expr->value(context) << std::endl;
     context->PC += 1;
     return 1;
+}
+
+void PrintStatement::printSyntaxTree() const
+{
+    std::cout << _lineNum << " PRINT" << std::endl;
+    _expr->printExpTree(1);
 }
 
 InputStatement::InputStatement(int lineNum, const QString &source, const QStringList &argList)
@@ -205,6 +221,12 @@ int InputStatement::exec(Core *context)
     context->varTable[_expr->getRootData()] = input;
     context->PC += 1;
     return 1;
+}
+
+void InputStatement::printSyntaxTree() const
+{
+    std::cout << _lineNum << " INPUT" << std::endl;
+    _expr->printExpTree(1);
 }
 IfStatement::IfStatement(int lineNum,const QString& source,QStringList argList)
     :Statement(lineNum,"IF",source)
@@ -293,6 +315,15 @@ int IfStatement::exec(Core *context)
     }
     return 1;
 }
+
+void IfStatement::printSyntaxTree() const
+{
+    std::cout << _lineNum << " IF THEN" << std::endl;
+    _conditionLeft->printExpTree(1);
+    std::cout << '\t' << _conditionOp.toLatin1() << std::endl;
+    _conditionRight->printExpTree(1);
+    std::cout << '\t' << _destination << std::endl;
+}
 GotoStatement::GotoStatement(int lineNum, const QString &source, const QStringList &argList)
     :Statement(lineNum,"GOTO",source)
 {
@@ -321,6 +352,11 @@ int GotoStatement::exec(Core *context)
     return 1;
 }
 
+void GotoStatement::printSyntaxTree() const
+{
+    std::cout << _lineNum << " GOTO" << _destination << std::endl;
+}
+
 EndStatement::EndStatement(int lineNum, const QString &source)
     :Statement(lineNum,"END",source)
 {
@@ -332,6 +368,11 @@ int EndStatement::exec(Core *context)
     return 0;
 }
 
+void EndStatement::printSyntaxTree() const
+{
+    std::cout << _lineNum << " END" << std::endl;
+}
+
 ErrStatement::ErrStatement(const QString &source, Exception buildException)
     :Statement(-1,"ERR",source,buildException)
 {
@@ -341,4 +382,9 @@ int ErrStatement::exec(Core *context)
 {
     //永远不会被调用
     return 0;
+}
+
+void ErrStatement::printSyntaxTree() const
+{
+    std::cout << "Error" << std::endl;
 }
