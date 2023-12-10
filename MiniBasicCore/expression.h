@@ -19,6 +19,13 @@ struct ExpNode{
     ExpNode(ExpNodeType type,const QString& data,ExpNode* left = nullptr,ExpNode* right = nullptr);
     ~ExpNode();
 };
+//层序遍历使用的结构体
+struct ExpNodeWrapper{
+    ExpNode* node;
+    int level;
+    ExpNodeWrapper():node(nullptr),level(0){}
+    ExpNodeWrapper(ExpNode* n,int l):node(n),level(l){}
+};
 
 class Expression
 {
@@ -28,6 +35,7 @@ public:
     //将中缀表达式转为后缀表达式
     static QString infix2Suffix(const QString& infix);
 public:
+    //TODO: 直接通过中缀表达式构造表达式树
     //通过后缀表达式构造表达式树
     Expression(const QString& suffix);
     ~Expression();
@@ -38,6 +46,9 @@ public:
     //计算表达式树的值
     int32_t value(Core *context, ExpNode* node);
     int32_t value(Core* context);
+
+    //在baseIndentation缩进下打印表达式树到标准输出
+    void printExpTree(int baseIndentation = 0) const;
 };
 
 #endif // EXPRESSION_H

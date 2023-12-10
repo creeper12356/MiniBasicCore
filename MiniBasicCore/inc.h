@@ -3,6 +3,7 @@
 #include <QProcess>
 #include <QDebug>
 #include <QVector>
+#include <QQueue>
 #include <QStack>
 #include <QMap>
 #include <QString>

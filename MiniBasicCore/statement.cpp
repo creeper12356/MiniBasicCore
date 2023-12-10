@@ -112,6 +112,9 @@ LetStatement::LetStatement(int lineNum, const QString &source, const QStringList
 
         _leftExpr = new Expression(Expression::infix2Suffix(left));
         _rightExpr = new Expression(Expression::infix2Suffix(right));
+        //test :
+        _leftExpr->printExpTree(0);
+        _rightExpr->printExpTree(0);
     }
     catch(Exception e){
         //构造赋值语句失败

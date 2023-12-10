@@ -254,14 +254,39 @@ int32_t Expression::value(Core *context)
     //assert root != nullptr
     return value(context,root);
 }
+void Expression::printExpTree(int baseIndentation) const
+{
+    if(!root) return ;
 
+    QQueue<ExpNodeWrapper> qu;
+    ExpNodeWrapper cur;
+    qu.push_back(ExpNodeWrapper(root,0));
+    while(!qu.empty()){
+        cur = qu.front();
+        qu.pop_front();
+        //基础缩进
+        for(int i = 0;i < baseIndentation;++i){
+            std::cout << '\t';
+        }
+        //附加缩进
+        for(int i = 0;i < cur.level;++i){
+            std::cout << '\t';
+        }
+        std::cout << cur.node->data.toStdString() << std::endl;
+        if(cur.node->left){
+            qu.push_back(ExpNodeWrapper(cur.node->left,cur.level + 1));
+        }
+        if(cur.node->right){
+            qu.push_back(ExpNodeWrapper(cur.node->right,cur.level + 1));
+        }
+    }
+}
 ExpNode::ExpNode(ExpNodeType t, const QString& d, ExpNode *l, ExpNode *r):
     type(t),
     data(d),
     left(l),
     right(r)
 {
-
 }
 
 ExpNode::~ExpNode()
@@ -273,4 +298,3 @@ ExpNode::~ExpNode()
         delete right;
     }
 }
-
