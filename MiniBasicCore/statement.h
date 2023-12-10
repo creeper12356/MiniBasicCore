@@ -6,7 +6,7 @@ class Statement{
 public:
     static Statement* newStatement(const QString &src);
 
-    Statement(int lineNum, StatementType type, const QString &source);
+    Statement(int lineNum, StatementType type, const QString &source, Exception buildException = NoException);
     virtual ~Statement(){}
     virtual int exec(Core* context) = 0;
     int getLineNum() const{return _lineNum;}
@@ -17,8 +17,14 @@ protected:
     int _lineNum;
     StatementType _type;
     QString _source;
-    //构造函数调用时发生的异常
+    //构造函数调用时发生的异常，构造时不报错，运行时报错
     Exception _buildException = NoException;
+};
+
+class ErrStatement: public Statement{
+public:
+    ErrStatement(const QString& source, Exception buildException);
+    int exec(Core *context) override;
 };
 
 class RemStatement: public Statement{

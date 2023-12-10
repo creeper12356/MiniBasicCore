@@ -9,7 +9,9 @@ Core::Core()
 
 Core::~Core()
 {
-
+    for(auto code: codes){
+        delete code;
+    }
 }
 int Core::exec(int argc,char* argv[])
 {
@@ -33,6 +35,9 @@ int Core::exec(int argc,char* argv[])
         else if(cmd == "load"){
             //从标准输入加载代码
             //清空原来代码
+            for(auto code: codes){
+                delete code;
+            }
             codes.clear();
             string code;
             while(true){
@@ -47,7 +52,7 @@ int Core::exec(int argc,char* argv[])
                 if(code == ""){
                     break;
                 }
-                codes.append(QString::fromStdString(code));
+                codes.append(Statement::newStatement(QString::fromStdString(code)));
             }
         }
         else if(cmd == "append"){
@@ -59,13 +64,13 @@ int Core::exec(int argc,char* argv[])
                     //空行停止接收输入
                     break;
                 }
-                codes.append(QString::fromStdString(code));
+                codes.append(Statement::newStatement(QString::fromStdString(code)));
             }
         }
         else if(cmd == "list"){
             //列出加载的代码
-            for(auto code:codes){
-                cout << code.toStdString() << endl;
+            for(auto code: codes){
+                cout << code->getSource().toStdString();
             }
         }
         else if(cmd == "run"){
@@ -75,11 +80,16 @@ int Core::exec(int argc,char* argv[])
             varTable.clear();
             while(PC != codes.size()){
                 try {
-                        if(!exeCode(codes[PC])){
+                    if(codes[PC]->getBuildException() != NoException){
+                        throw codes[PC]->getBuildException();
+                    }
+                    else{
+                        if(!codes[PC]->exec(this)){
                             //退出
                             break;
                         }
                     }
+                }
                 catch(Exception e){
                     cerr << "throw Exception " << int(e) << endl;
                     ++PC;
@@ -88,35 +98,17 @@ int Core::exec(int argc,char* argv[])
             }
             (!silentFlag) && cout << "run finished.\n";
         }
-
     }
     cout << "logout\n";
     return 0;
 }
 
-int Core::exeCode(const QString &code)
-{
-    Statement* statement = Statement::newStatement(code);
-    if(statement->getBuildException() != NoException){
-        //构造失败
-        Exception buildException = statement->getBuildException();
-        delete statement;
-        throw buildException;
-    }
-    if(statement == nullptr){
-        //TODO
-        return 0;
-    }
-    int res = statement->exec(this);
-    delete statement;
-    return res;
-}
 
 void Core::gotoLine(int dst)
 {
     for(int i = 0;i < codes.size();++i){
         //逐一比较行号
-        if(dst == codes[i].split(" " , QString::SkipEmptyParts)[0].toInt()){
+        if(dst == codes[i]->getLineNum()){
             PC = i;
             return ;
         }

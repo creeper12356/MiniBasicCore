@@ -30,4 +30,5 @@ enum Exception{
 };
 enum read_mode{read_other = 0,read_digit,read_var};
 class Core;
+class Statement;
 #endif // INC_H

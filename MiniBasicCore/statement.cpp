@@ -3,71 +3,79 @@
 
 Statement *Statement::newStatement(const QString &src)
 {
-    QStringList argList = src.split(" " ,QString::SkipEmptyParts);
-    int size = argList.size();
-    if(size == 0){
-        //空行
-        return nullptr;
-    }
-    //assert size >= 1
-    bool isNum;
-    int lineNum = argList[0].toInt(&isNum);
-    if(!isNum){
-        //第一个参数不是行号
-        throw NoLineNum;
-    }
-    if(lineNum < 0 || lineNum > 1000000){
-        //行号范围错误
-        throw WrongLineNum;
-    }
+    try{
+        QStringList argList = src.split(" " ,QString::SkipEmptyParts);
+        int size = argList.size();
+        if(size == 0){
+            //空行
+            //never occur
+            return nullptr;
+        }
+        //assert size >= 1
+        bool isNum;
+        int lineNum = argList[0].toInt(&isNum);
+        if(!isNum){
+            //第一个参数不是行号
+            throw NoLineNum;
+        }
+        if(lineNum < 0 || lineNum > 1000000){
+            //行号范围错误
+            throw WrongLineNum;
+        }
 
-    if(size == 1){
-        //只有行号
-        return nullptr;
-    }
-    //assert(size >= 2)
-    StatementType type = argList[1];
-    //去除行号和类型
-    argList.removeFirst();
-    argList.removeFirst();
-    //替换余数运算符
-    for(auto it = argList.begin(); it != argList.end();++it){
-        if(*it == "MOD"){
-            argList.replace(it - argList.begin(),"%");
+        if(size == 1){
+            //只有行号
+            //never occur in frontend
+            throw EmptyExpr;
+        }
+        //assert(size >= 2)
+        StatementType type = argList[1];
+        //去除行号和类型
+        argList.removeFirst();
+        argList.removeFirst();
+        //替换余数运算符
+        for(auto it = argList.begin(); it != argList.end();++it){
+            if(*it == "MOD"){
+                argList.replace(it - argList.begin(),"%");
+            }
+        }
+        if(type == "REM"){
+            return new RemStatement(lineNum,src,argList);
+        }
+        else if(type == "LET"){
+            return new LetStatement(lineNum,src,argList);
+        }
+        else if(type == "PRINT"){
+            return new PrintStatement(lineNum,src,argList);
+        }
+        else if(type == "INPUT"){
+            return new InputStatement(lineNum,src,argList);
+        }
+        else if(type == "GOTO"){
+            return new GotoStatement(lineNum,src,argList);
+        }
+        else if(type == "IF"){
+            return new IfStatement(lineNum,src,argList);
+        }
+        else if(type == "END"){
+            return new EndStatement(lineNum,src);
+        }
+        else{
+            //未知语句类型
+            throw UnknownStatementType;
         }
     }
-    if(type == "REM"){
-        return new RemStatement(lineNum,src,argList);
+    catch(Exception e){
+        //处理基本构造失败的语句
+        return new ErrStatement(src,e);
     }
-    else if(type == "LET"){
-        return new LetStatement(lineNum,src,argList);
-    }
-    else if(type == "PRINT"){
-        return new PrintStatement(lineNum,src,argList);
-    }
-    else if(type == "INPUT"){
-        return new InputStatement(lineNum,src,argList);
-    }
-    else if(type == "GOTO"){
-        return new GotoStatement(lineNum,src,argList);
-    }
-    else if(type == "IF"){
-        return new IfStatement(lineNum,src,argList);
-    }
-    else if(type == "END"){
-        return new EndStatement(lineNum,src);
-    }
-    else{
-        //未知语句类型
-        throw UnknownStatementType;
-    }
-
 }
 
-Statement::Statement(int lineNum, StatementType type, const QString &source)
+Statement::Statement(int lineNum, StatementType type, const QString &source,Exception buildException)
     :_lineNum(lineNum)
     ,_type(type)
     ,_source(source)
+    ,_buildException(buildException)
 {
 }
 
@@ -213,6 +221,9 @@ IfStatement::IfStatement(int lineNum,const QString& source,QStringList argList)
         if(!isNum){
             throw WrongGotoDst;
         }
+        if(_destination < 0 || _destination > 1000000){
+            throw WrongGotoDst;
+        }
         //去除THEN 和 destination
         argList.removeLast();
         argList.removeLast();
@@ -292,6 +303,9 @@ GotoStatement::GotoStatement(int lineNum, const QString &source, const QStringLi
         if(!isNum){
             throw WrongGotoDst;
         }
+        if(_destination < 0 || _destination > 1000000){
+            throw WrongGotoDst;
+        }
     }
     catch(Exception e){
         _buildException = e;
@@ -312,5 +326,16 @@ EndStatement::EndStatement(int lineNum, const QString &source)
 int EndStatement::exec(Core *context)
 {
     context->PC += 1;
+    return 0;
+}
+
+ErrStatement::ErrStatement(const QString &source, Exception buildException)
+    :Statement(-1,"ERR",source,buildException)
+{
+}
+
+int ErrStatement::exec(Core *context)
+{
+    //永远不会被调用
     return 0;
 }

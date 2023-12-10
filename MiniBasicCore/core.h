@@ -14,19 +14,14 @@ class Core
     friend class Expression;
 private:
     QMap<QString,int32_t> varTable;//变量表
-    QVector<QString> codes;
+    QVector<Statement*> codes;
     //指向下一条指令
-    int PC;
+    int PC = 0;
 public:
     Core();
     ~Core();
     int exec(int argc, char *argv[]);
 private:
-    //执行指令code，
-    //成功并准备下一次执行返回1，
-    //成功并退出返回0，
-    //失败抛出异常
-    int exeCode(const QString &code);
     //将PC设为dst
     void gotoLine(int dst);
 private:
