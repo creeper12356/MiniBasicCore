@@ -71,6 +71,11 @@ Statement *Statement::newStatement(const QString &src)
     }
 }
 
+void Statement::printErrSyntaxTree()
+{
+    std::cout << "Error" << std::endl;
+}
+
 Statement::Statement(int lineNum, StatementType type, const QString &source,Exception buildException)
     :_lineNum(lineNum)
     ,_type(type)
@@ -154,6 +159,10 @@ int LetStatement::exec(Core *context)
 
 void LetStatement::printSyntaxTree() const
 {
+    if(_buildException != NoException){
+        Statement::printErrSyntaxTree();
+        return ;
+    }
     std::cout << _lineNum << " LET = " << std::endl;
     _leftExpr->printExpTree(1);
     _rightExpr->printExpTree(1);
@@ -186,6 +195,10 @@ int PrintStatement::exec(Core *context)
 
 void PrintStatement::printSyntaxTree() const
 {
+    if(_buildException != NoException){
+        Statement::printErrSyntaxTree();
+        return ;
+    }
     std::cout << _lineNum << " PRINT" << std::endl;
     _expr->printExpTree(1);
 }
@@ -195,10 +208,16 @@ InputStatement::InputStatement(int lineNum, const QString &source, const QString
 {
     try{
         _expr = new Expression(Expression::infix2Suffix(argList.join("")));
+        if(_expr->getType() != exp_var){
+            //检查左值合法性
+            throw WrongLeftValue;
+        }
     }
     catch(Exception e){
         //构造输入语句失败
-        //assert(_expr == nullptr)
+        if(_expr) {
+            delete _expr; _expr = nullptr;
+        }
         _buildException = e;
     }
 }
@@ -210,9 +229,7 @@ InputStatement::~InputStatement()
 
 int InputStatement::exec(Core *context)
 {
-    if(_expr->getType() != exp_var){
-        throw WrongLeftValue;
-    }
+    //assert _expr.type == exp_var
     std::cout << "?";
     int32_t input;
     //TODO 前端保证，用户只能输入一个整数
@@ -225,6 +242,10 @@ int InputStatement::exec(Core *context)
 
 void InputStatement::printSyntaxTree() const
 {
+    if(_buildException != NoException){
+        Statement::printErrSyntaxTree();
+        return ;
+    }
     std::cout << _lineNum << " INPUT" << std::endl;
     _expr->printExpTree(1);
 }
@@ -318,6 +339,10 @@ int IfStatement::exec(Core *context)
 
 void IfStatement::printSyntaxTree() const
 {
+    if(_buildException != NoException){
+        Statement::printErrSyntaxTree();
+        return ;
+    }
     std::cout << _lineNum << " IF THEN" << std::endl;
     _conditionLeft->printExpTree(1);
     std::cout << '\t' << _conditionOp.toLatin1() << std::endl;
@@ -354,7 +379,11 @@ int GotoStatement::exec(Core *context)
 
 void GotoStatement::printSyntaxTree() const
 {
-    std::cout << _lineNum << " GOTO" << _destination << std::endl;
+    if(_buildException != NoException){
+        Statement::printErrSyntaxTree();
+        return ;
+    }
+    std::cout << _lineNum << " GOTO " << _destination << std::endl;
 }
 
 EndStatement::EndStatement(int lineNum, const QString &source)
@@ -386,5 +415,5 @@ int ErrStatement::exec(Core *context)
 
 void ErrStatement::printSyntaxTree() const
 {
-    std::cout << "Error" << std::endl;
+    Statement::printErrSyntaxTree();
 }

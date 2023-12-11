@@ -5,6 +5,8 @@
 class Statement{
 public:
     static Statement* newStatement(const QString &src);
+    //打印错误的语法树
+    static void printErrSyntaxTree();
 
     Statement(int lineNum, StatementType type, const QString &source, Exception buildException = NoException);
     virtual ~Statement(){}

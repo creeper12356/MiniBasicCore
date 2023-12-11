@@ -84,7 +84,6 @@ int Core::exec(int argc,char* argv[])
                         throw codes[PC]->getBuildException();
                     }
                     else{
-                        codes[PC]->printSyntaxTree();
                         if(!codes[PC]->exec(this)){
                             //退出
                             break;
@@ -98,6 +97,11 @@ int Core::exec(int argc,char* argv[])
                 }
             }
             (!silentFlag) && cout << "run finished.\n";
+        }
+        else if(cmd == "analyze"){
+            for(Statement* code: codes){
+                code->printSyntaxTree();
+            }
         }
     }
     cout << "logout\n";

@@ -11,7 +11,8 @@ QString Expression::infix2Suffix(const QString &str)
     QChar ch;
     for(auto iterator = str.begin();iterator != str.end();++iterator){
         ch = *iterator;
-        if(ch.isLetter()){
+        if(isalpha(ch.toLatin1())){
+            //变量名仅支持英文字母开头
             if(mode == read_var){
                 //already reading var
                 var.push_back(ch);
@@ -272,7 +273,12 @@ void Expression::printExpTree(int baseIndentation) const
         for(int i = 0;i < cur.level;++i){
             std::cout << '\t';
         }
-        std::cout << cur.node->data.toStdString() << std::endl;
+        std::string printInfo = cur.node->data.toStdString();
+        if(printInfo == "%"){
+            //替换取余号
+            printInfo = "MOD";
+        }
+        std::cout << printInfo << std::endl;
         if(cur.node->left){
             qu.push_back(ExpNodeWrapper(cur.node->left,cur.level + 1));
         }
