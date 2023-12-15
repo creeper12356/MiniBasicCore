@@ -1,17 +1,14 @@
 #include "core.h"
+#include "context.h"
 #include "statement.h"
-#include "expression.h"
-
 Core::Core()
 {
-    PC = 0;
+    context = new Context;
 }
 
 Core::~Core()
 {
-    for(auto code: codes){
-        delete code;
-    }
+    delete context;
 }
 int Core::exec(int argc,char* argv[])
 {
@@ -26,19 +23,21 @@ int Core::exec(int argc,char* argv[])
         if(!getline(cin,cmd)){
             break;
         }
-        if(cmd == "exit"){
+        QStringList argList = QString::fromStdString(cmd).split(" ",QString::SkipEmptyParts);
+        if(argList.size() == 0){
+            continue;
+        }
+        if(argList[0] == "exit"){
             break;
         }
-        else if(cmd == "clear"){
+        else if(argList[0] == "clear"){
             QProcess::execute("clear");
+            context->clearCodes();
+            context->clearRunningStatus();
         }
-        else if(cmd == "load"){
+        else if(argList[0] == "load"){
             //从标准输入加载代码
-            //清空原来代码
-            for(auto code: codes){
-                delete code;
-            }
-            codes.clear();
+            context->clearCodes();
             string code;
             while(true){
                 (!silentFlag) && cout << "$";
@@ -52,10 +51,10 @@ int Core::exec(int argc,char* argv[])
                 if(code == ""){
                     break;
                 }
-                codes.append(Statement::newStatement(QString::fromStdString(code)));
+                context->appendCode(QString::fromStdString(code));
             }
         }
-        else if(cmd == "append"){
+        else if(argList[0] == "append"){
             string code;
             while(true){
                 (!silentFlag) && cout << "$";
@@ -64,71 +63,48 @@ int Core::exec(int argc,char* argv[])
                     //空行停止接收输入
                     break;
                 }
-                codes.append(Statement::newStatement(QString::fromStdString(code)));
+                context->appendCode(QString::fromStdString(code));
             }
         }
-        else if(cmd == "list"){
-            //列出加载的代码
-            for(auto code: codes){
-                cout << code->getSource().toStdString();
-            }
+        else if(argList[0] == "list"){
+            context->listCodes();
         }
-        else if(cmd == "run"){
-            //重置PC
-            PC = 0;
-            //清空变量表
-            varTable.clear();
-            while(PC != codes.size()){
-                try {
-                    if(codes[PC]->getBuildException() != NoException){
-                        throw codes[PC]->getBuildException();
-                    }
-                    else{
-                        if(!codes[PC]->exec(this)){
-                            //退出
-                            break;
-                        }
-                    }
-                }
-                catch(Exception e){
-                    cerr << "throw Exception " << int(e) << endl;
-                    ++PC;
-                    continue;
-                }
-            }
-            (!silentFlag) && cout << "run finished.\n";
+        else if(argList[0] == "run"){
+            context->clearRunningStatus();
+            context->runCodes();
         }
-        else if(cmd == "analyze"){
-            for(Statement* code: codes){
-                code->printSyntaxTree();
-            }
+        else if(argList[0] == "analyze"){
+            context->analyze();
+        }
+        else if(argList[0] == "runtime"){
+            context->runTime();
+        }
+        else if(argList[0] == "cmd"){
+            QString qCmd = QString::fromStdString(cmd);
+            qCmd.remove(0,strlen("cmd"));
+            Statement *stmt = Statement::newStatement("1" + qCmd);
+            context->executeCode(stmt);
+            delete stmt;
+        }
+        else if(argList[0] == "help"){
+            usage();
         }
     }
     cout << "logout\n";
     return 0;
 }
 
-
-void Core::gotoLine(int dst)
+void Core::usage() const
 {
-    for(int i = 0;i < codes.size();++i){
-        //逐一比较行号
-        if(dst == codes[i]->getLineNum()){
-            PC = i;
-            return ;
-        }
-    }
-    //目标不存在
-    throw WrongGotoDst;
+    cout << "MiniBasic Core Developed by Creeper\n"
+            "---\t\t---\n";
+    cout << "help:\t\tprint this message\n"
+            "clear:\t\tclear context state\n"
+            "load:\t\tload codes from stdin\n"
+            "append:\t\tappend codes from stdin\n"
+            "list:\t\tlist loaded codes\n"
+            "analyze:\tprint syntax tree of loaded codes\n"
+            "cmd:\t\tdirectly execute BASIC code\n"
+            "exit:\t\tquit this program\n";
 }
 
-void Core::printVarTable() const
-{
-//    cout << "---VARTABLE---" << endl;
-//    cout << "name\tvalue\n";
-//    cout << "----\t-----\n";
-//    for(auto name:varTable.keys()){
-//        cout << name << "\t" << varTable[name] << endl;
-//    }
-//    cout << "---\tEND\t---" << endl;
-}

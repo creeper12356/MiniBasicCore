@@ -44,8 +44,8 @@ public:
     //返回根节点存储的字符串
     const QString& getRootData() const{return root->data;}
     //计算表达式树的值
-    int32_t value(Core *context, ExpNode* node);
-    int32_t value(Core* context);
+    int32_t value(Context *context, ExpNode* node);
+    int32_t value(Context *context);
 
     //在baseIndentation缩进下打印表达式树到标准输出
     void printExpTree(int baseIndentation = 0) const;

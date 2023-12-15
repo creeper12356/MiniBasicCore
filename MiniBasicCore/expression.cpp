@@ -1,5 +1,5 @@
 #include "expression.h"
-#include "core.h"
+#include "context.h"
 QString Expression::infix2Suffix(const QString &str)
 {
     QStack<QChar> st;
@@ -63,18 +63,17 @@ QString Expression::infix2Suffix(const QString &str)
                 continue;
             }
             else if(ch == ')'){
-                if(st.empty()){
-                    //多余右括号不匹配
-                    throw BracketsNotMatch;
-                }
                 if(iterator != str.begin() && *(iterator - 1) == '('){
                     //空括号
                     throw EmptyExpr;
                 }
-                while(st.top() != '('){
+                while(!st.empty() && st.top() != '('){
                     ret.append(st.pop());
                 }
-
+                if(st.empty()){
+                    //多余右括号不匹配
+                    throw BracketsNotMatch;
+                }
                 //弹出'('
                 st.pop();
                 continue;
@@ -215,7 +214,7 @@ Expression::~Expression()
     }
 }
 
-int32_t Expression::value(Core *context, ExpNode *node)
+int32_t Expression::value(Context *context, ExpNode *node)
 {
     //assert node != nullptr
     if(node->type == node_var){
@@ -250,7 +249,7 @@ int32_t Expression::value(Core *context, ExpNode *node)
     }
 }
 
-int32_t Expression::value(Core *context)
+int32_t Expression::value(Context *context)
 {
     //assert root != nullptr
     return value(context,root);

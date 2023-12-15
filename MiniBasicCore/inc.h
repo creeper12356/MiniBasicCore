@@ -11,6 +11,10 @@
 
 #include <iostream>
 #include <string>
+
+#define qStdout QTextStream(stdout)
+#define qStdin QTextStream(stdin)
+
 typedef QString StatementType;
 enum Exception{
     NoException, //没有异常
@@ -32,4 +36,5 @@ enum Exception{
 enum read_mode{read_other = 0,read_digit,read_var};
 class Core;
 class Statement;
+class Context;
 #endif // INC_H

@@ -6,8 +6,11 @@
 * Expression实现参数为中缀表达式的构造函数接口
 * (Ok)取消变量名中文支持
 * 禁止使用关键字作为变量名
+* 取消Statement构造函数中clearRunTime
 ## **BUG report**
 
+## **Question list**
+* 错误语句也要记录runtime吗
 ## **LOG**
 2023.11.30
 * 迁移至Ubuntu开发.

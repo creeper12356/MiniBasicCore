@@ -1,5 +1,5 @@
 #include "statement.h"
-#include "core.h"
+#include "context.h"
 
 Statement *Statement::newStatement(const QString &src)
 {
@@ -18,7 +18,7 @@ Statement *Statement::newStatement(const QString &src)
             //第一个参数不是行号
             throw NoLineNum;
         }
-        if(lineNum < 0 || lineNum > 1000000){
+        if(lineNum < 1 || lineNum > 1000000){
             //行号范围错误
             throw WrongLineNum;
         }
@@ -82,6 +82,22 @@ Statement::Statement(int lineNum, StatementType type, const QString &source,Exce
     ,_source(source)
     ,_buildException(buildException)
 {
+    clearRunTime();
+}
+
+void Statement::updateRunTime(bool flag)
+{
+    ++_runTime.count;
+}
+
+void Statement::printRunTime() const
+{
+    std::cout << _runTime.count << std::endl;
+}
+
+void Statement::clearRunTime()
+{
+    _runTime.conditionCount.trueCount = _runTime.conditionCount.falseCount = 0;
 }
 
 RemStatement::RemStatement(int lineNum, const QString& source, const QStringList &argList)
@@ -90,15 +106,16 @@ RemStatement::RemStatement(int lineNum, const QString& source, const QStringList
 {
 }
 
-int RemStatement::exec(Core *context)
+int RemStatement::exec(Context *context)
 {
     context->PC += 1;
+    updateRunTime();
     return 1;
 }
 
 void RemStatement::printSyntaxTree() const
 {
-    std::cout << _lineNum << " REM" << std::endl;
+    std::cout << _lineNum << " REM  " << _runTime.count << std::endl;
     std::cout << "\t" << _comment.toStdString() << std::endl;
 }
 
@@ -142,10 +159,8 @@ LetStatement::~LetStatement()
     if(_rightExpr) delete _rightExpr;
 }
 
-int LetStatement::exec(Core *context)
+int LetStatement::exec(Context *context)
 {
-    //TODO : exception handler
-
     if(_leftExpr->getType() != exp_var){
         //左值不是变量
         throw WrongLeftValue;
@@ -154,6 +169,7 @@ int LetStatement::exec(Core *context)
     int32_t parseRes = _rightExpr->value(context);
     context->varTable[_leftExpr->getRootData()] = parseRes;
     context->PC += 1;
+    updateRunTime();
     return 1;
 }
 
@@ -163,7 +179,7 @@ void LetStatement::printSyntaxTree() const
         Statement::printErrSyntaxTree();
         return ;
     }
-    std::cout << _lineNum << " LET = " << std::endl;
+    std::cout << _lineNum << " LET =  " << _runTime.count << std::endl;
     _leftExpr->printExpTree(1);
     _rightExpr->printExpTree(1);
 }
@@ -186,10 +202,11 @@ PrintStatement::~PrintStatement()
     if(_expr) delete _expr;
 }
 
-int PrintStatement::exec(Core *context)
+int PrintStatement::exec(Context *context)
 {
     std::cout << _expr->value(context) << std::endl;
     context->PC += 1;
+    updateRunTime();
     return 1;
 }
 
@@ -199,7 +216,7 @@ void PrintStatement::printSyntaxTree() const
         Statement::printErrSyntaxTree();
         return ;
     }
-    std::cout << _lineNum << " PRINT" << std::endl;
+    std::cout << _lineNum << " PRINT  " << _runTime.count << std::endl;
     _expr->printExpTree(1);
 }
 
@@ -227,7 +244,7 @@ InputStatement::~InputStatement()
     if(_expr) delete _expr;
 }
 
-int InputStatement::exec(Core *context)
+int InputStatement::exec(Context *context)
 {
     //assert _expr.type == exp_var
     std::cout << "?";
@@ -237,6 +254,7 @@ int InputStatement::exec(Core *context)
     std::cin.get();
     context->varTable[_expr->getRootData()] = input;
     context->PC += 1;
+    updateRunTime();
     return 1;
 }
 
@@ -246,7 +264,7 @@ void InputStatement::printSyntaxTree() const
         Statement::printErrSyntaxTree();
         return ;
     }
-    std::cout << _lineNum << " INPUT" << std::endl;
+    std::cout << _lineNum << " INPUT  " << _runTime.count << std::endl;
     _expr->printExpTree(1);
 }
 IfStatement::IfStatement(int lineNum,const QString& source,QStringList argList)
@@ -313,7 +331,7 @@ IfStatement::~IfStatement()
     if(_conditionRight) delete _conditionRight;
 }
 
-int IfStatement::exec(Core *context)
+int IfStatement::exec(Context *context)
 {
     //解析布尔表达式
     bool parseRes;
@@ -334,6 +352,7 @@ int IfStatement::exec(Core *context)
     else{
         context->PC += 1;
     }
+    updateRunTime(parseRes);
     return 1;
 }
 
@@ -343,11 +362,29 @@ void IfStatement::printSyntaxTree() const
         Statement::printErrSyntaxTree();
         return ;
     }
-    std::cout << _lineNum << " IF THEN" << std::endl;
+    std::cout << _lineNum << " IF THEN  "
+              << _runTime.conditionCount.trueCount << " "
+              << _runTime.conditionCount.falseCount << std::endl;
     _conditionLeft->printExpTree(1);
     std::cout << '\t' << _conditionOp.toLatin1() << std::endl;
     _conditionRight->printExpTree(1);
     std::cout << '\t' << _destination << std::endl;
+}
+
+void IfStatement::updateRunTime(bool flag)
+{
+    if(flag){
+        ++ _runTime.conditionCount.trueCount;
+    }
+    else{
+        ++ _runTime.conditionCount.falseCount;
+    }
+}
+
+void IfStatement::printRunTime() const
+{
+    std::cout << _runTime.conditionCount.trueCount << "\t"
+              << _runTime.conditionCount.falseCount << std::endl;
 }
 GotoStatement::GotoStatement(int lineNum, const QString &source, const QStringList &argList)
     :Statement(lineNum,"GOTO",source)
@@ -371,9 +408,10 @@ GotoStatement::GotoStatement(int lineNum, const QString &source, const QStringLi
     }
 }
 
-int GotoStatement::exec(Core *context)
+int GotoStatement::exec(Context *context)
 {
     context->gotoLine(_destination);
+    updateRunTime();
     return 1;
 }
 
@@ -383,7 +421,8 @@ void GotoStatement::printSyntaxTree() const
         Statement::printErrSyntaxTree();
         return ;
     }
-    std::cout << _lineNum << " GOTO " << _destination << std::endl;
+    std::cout << _lineNum << " GOTO  " << _runTime.count << std::endl;
+    std::cout << '\t' << _destination << std::endl;
 }
 
 EndStatement::EndStatement(int lineNum, const QString &source)
@@ -391,15 +430,16 @@ EndStatement::EndStatement(int lineNum, const QString &source)
 {
 }
 
-int EndStatement::exec(Core *context)
+int EndStatement::exec(Context *context)
 {
     context->PC += 1;
+    updateRunTime();
     return 0;
 }
 
 void EndStatement::printSyntaxTree() const
 {
-    std::cout << _lineNum << " END" << std::endl;
+    std::cout << _lineNum << " END  " << _runTime.count << std::endl;
 }
 
 ErrStatement::ErrStatement(const QString &source, Exception buildException)
@@ -407,9 +447,10 @@ ErrStatement::ErrStatement(const QString &source, Exception buildException)
 {
 }
 
-int ErrStatement::exec(Core *context)
+int ErrStatement::exec(Context *context)
 {
     //永远不会被调用
+    //no need to update run time
     return 0;
 }
 
