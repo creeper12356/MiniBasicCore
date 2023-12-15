@@ -167,6 +167,10 @@ int LetStatement::exec(Context *context)
     }
     //先解析,解析无误后再赋值
     int32_t parseRes = _rightExpr->value(context);
+    if(!context->useCount.contains(_leftExpr->getRootData())){
+        //新定义变量
+        context->useCount[_leftExpr->getRootData()] = 0;
+    }
     context->varTable[_leftExpr->getRootData()] = parseRes;
     context->PC += 1;
     updateRunTime();
@@ -252,6 +256,10 @@ int InputStatement::exec(Context *context)
     //TODO 前端保证，用户只能输入一个整数
     std::cin >> input;
     std::cin.get();
+    if(!context->varTable.contains(_expr->getRootData())){
+        //新定义变量
+        context->useCount[_expr->getRootData()] = 0;
+    }
     context->varTable[_expr->getRootData()] = input;
     context->PC += 1;
     updateRunTime();

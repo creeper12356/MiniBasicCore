@@ -22,6 +22,7 @@ void Context::appendCode(const QString &code)
 void Context::clearRunningStatus()
 {
     varTable.clear();
+    useCount.clear();
     PC = 0;
     for(Statement* code: codes){
         code->clearRunTime();
@@ -42,10 +43,24 @@ void Context::analyze() const
     }
 }
 
-void Context::runTime() const
+void Context::printVarTable() const
+{
+    for(auto var: useCount.keys()){
+        std::cout << var.toStdString() << "\t" << varTable[var] << std::endl;
+    }
+}
+
+void Context::printRunTime() const
 {
     for(Statement* code: codes){
         code->printRunTime();
+    }
+}
+
+void Context::printUseCount() const
+{
+    for(auto var: useCount.keys()){
+        std::cout << var.toStdString() << "\t" << useCount[var] << std::endl;
     }
 }
 
@@ -64,6 +79,11 @@ int Context::executeCode(Statement *code)
         ++PC;
         return 1;
     }
+}
+
+int Context::getPC() const
+{
+    return PC;
 }
 
 void Context::runCodes()

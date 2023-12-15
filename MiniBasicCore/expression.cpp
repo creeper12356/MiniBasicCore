@@ -223,6 +223,8 @@ int32_t Expression::value(Context *context, ExpNode *node)
             throw UseBeforeDeclare;
         }
         else{
+            //使用次数++
+            context->useCount[node->data] += 1;
             return context->varTable[node->data];
         }
     }

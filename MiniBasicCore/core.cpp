@@ -31,7 +31,6 @@ int Core::exec(int argc,char* argv[])
             break;
         }
         else if(argList[0] == "clear"){
-            QProcess::execute("clear");
             context->clearCodes();
             context->clearRunningStatus();
         }
@@ -69,6 +68,9 @@ int Core::exec(int argc,char* argv[])
         else if(argList[0] == "list"){
             context->listCodes();
         }
+        else if(argList[0] == "pc"){
+            cout << "PC = " << context->getPC() << endl;
+        }
         else if(argList[0] == "run"){
             context->clearRunningStatus();
             context->runCodes();
@@ -76,8 +78,14 @@ int Core::exec(int argc,char* argv[])
         else if(argList[0] == "analyze"){
             context->analyze();
         }
+        else if(argList[0] == "vartable"){
+            context->printVarTable();
+        }
         else if(argList[0] == "runtime"){
-            context->runTime();
+            context->printRunTime();
+        }
+        else if(argList[0] == "usecount"){
+            context->printUseCount();
         }
         else if(argList[0] == "cmd"){
             QString qCmd = QString::fromStdString(cmd);

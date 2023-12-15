@@ -20,16 +20,19 @@ public:
     void clearRunningStatus();
     void listCodes() const;
     void analyze() const;
-    void runTime() const;
+    void printVarTable() const;
+    void printRunTime() const;
+    void printUseCount() const;
     int executeCode(Statement* code);
+    int getPC() const;
     void runCodes();
 private:
     void gotoLine(int dst);
     
     QMap<QString,int32_t> varTable;
+    QMap<QString,int> useCount;
     QVector<Statement*> codes;
     int PC;
 };
-
 
 #endif // CONTEXT_H
