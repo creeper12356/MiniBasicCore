@@ -1,8 +1,9 @@
 #include "statement.h"
 #include "context.h"
 
-Statement *Statement::newStatement(const QString &src)
+Statement *Statement::newStatement(const QString &src, bool lineNumCheck)
 {
+    int lineNum = -1;
     try{
         QStringList argList = src.split(" " ,QString::SkipEmptyParts);
         int size = argList.size();
@@ -13,20 +14,22 @@ Statement *Statement::newStatement(const QString &src)
         }
         //assert size >= 1
         bool isNum;
-        int lineNum = argList[0].toInt(&isNum);
+        lineNum = argList[0].toInt(&isNum);
         if(!isNum){
             //第一个参数不是行号
-            throw NoLineNum;
+            lineNum = -1;
+            throw Exception(NoLineNum);
         }
-        if(lineNum < 1 || lineNum > 1000000){
+        if(lineNumCheck && (lineNum < 1 || lineNum > 1000000)){
             //行号范围错误
-            throw WrongLineNum;
+            lineNum = -1;
+            throw Exception(WrongLineNum,argList.first());
         }
 
         if(size == 1){
             //只有行号
             //never occur in frontend
-            throw EmptyExpr;
+            throw Exception(EmptyExpr);
         }
         //assert(size >= 2)
         StatementType type = argList[1];
@@ -62,12 +65,12 @@ Statement *Statement::newStatement(const QString &src)
         }
         else{
             //未知语句类型
-            throw UnknownStatementType;
+            throw Exception(UnknownStatementType,type);
         }
     }
     catch(Exception e){
         //处理基本构造失败的语句
-        return new ErrStatement(src,e);
+        return new ErrStatement(lineNum,src,e);
     }
 }
 
@@ -133,7 +136,7 @@ LetStatement::LetStatement(int lineNum, const QString &source, const QStringList
     try{
         if(assignmentIndex == -1){
             //没有赋值号
-            throw WrongAssignSyntax;
+            throw Exception(WrongAssignSyntax);
         }
         QString left = obj.left(assignmentIndex);
         QString right = obj.right(obj.size() - assignmentIndex - 1);
@@ -163,7 +166,7 @@ int LetStatement::exec(Context *context)
 {
     if(_leftExpr->getType() != exp_var){
         //左值不是变量
-        throw WrongLeftValue;
+        throw Exception(WrongLeftValue);
     }
     //先解析,解析无误后再赋值
     int32_t parseRes = _rightExpr->value(context);
@@ -179,7 +182,7 @@ int LetStatement::exec(Context *context)
 
 void LetStatement::printSyntaxTree() const
 {
-    if(_buildException != NoException){
+    if(_buildException.type != NoException){
         Statement::printErrSyntaxTree();
         return ;
     }
@@ -216,7 +219,7 @@ int PrintStatement::exec(Context *context)
 
 void PrintStatement::printSyntaxTree() const
 {
-    if(_buildException != NoException){
+    if(_buildException.type != NoException){
         Statement::printErrSyntaxTree();
         return ;
     }
@@ -231,7 +234,7 @@ InputStatement::InputStatement(int lineNum, const QString &source, const QString
         _expr = new Expression(Expression::infix2Suffix(argList.join("")));
         if(_expr->getType() != exp_var){
             //检查左值合法性
-            throw WrongLeftValue;
+            throw Exception(WrongLeftValue);
         }
     }
     catch(Exception e){
@@ -268,7 +271,7 @@ int InputStatement::exec(Context *context)
 
 void InputStatement::printSyntaxTree() const
 {
-    if(_buildException != NoException){
+    if(_buildException.type != NoException){
         Statement::printErrSyntaxTree();
         return ;
     }
@@ -281,27 +284,27 @@ IfStatement::IfStatement(int lineNum,const QString& source,QStringList argList)
     try{
         //assert argList.size() >= 2
         if(argList.size() < 2){
-            throw WrongIfSyntax;
+            throw Exception(WrongIfSyntax);
         }
         if(*(argList.end() - 2) != "THEN"){
             //找不到合法的THEN子句
-            throw WrongIfSyntax;
+            throw Exception(WrongIfSyntax,"未找到THEN子句");
         }
 
         bool isNum = false;
         _destination = argList.last().toInt(&isNum);
         if(!isNum){
-            throw WrongGotoDst;
+            throw Exception(WrongGotoDst,argList.last());
         }
         if(_destination < 0 || _destination > 1000000){
-            throw WrongGotoDst;
+            throw Exception(WrongGotoDst,argList.last());
         }
         //去除THEN 和 destination
         argList.removeLast();
         argList.removeLast();
         if(argList.empty()){
             //空条件
-            throw EmptyExpr;
+            throw Exception(EmptyExpr,"IF子句条件为空");
         }
 
         //合成条件表达式
@@ -316,7 +319,7 @@ IfStatement::IfStatement(int lineNum,const QString& source,QStringList argList)
         }
         if(it == condition.end()){
             //找不到比较运算符('<','=','>')
-            throw WrongCmpSyntax;
+            throw Exception(WrongCmpSyntax,"找不到比较运算符(>,=,<)");
         }
         _conditionLeft = new Expression(Expression::infix2Suffix(condition.left(it - condition.begin())));
         _conditionRight = new Expression(Expression::infix2Suffix(condition.right(condition.end() - 1 - it)));
@@ -366,7 +369,7 @@ int IfStatement::exec(Context *context)
 
 void IfStatement::printSyntaxTree() const
 {
-    if(_buildException != NoException){
+    if(_buildException.type != NoException){
         Statement::printErrSyntaxTree();
         return ;
     }
@@ -401,14 +404,14 @@ GotoStatement::GotoStatement(int lineNum, const QString &source, const QStringLi
     //assert argList.size == 1
     try{
         if(argList.size() != 1){
-            throw WrongGotoDst;
+            throw Exception(WrongGotoDst," ");
         }
         _destination = argList.first().toInt(&isNum);
         if(!isNum){
-            throw WrongGotoDst;
+            throw Exception(WrongGotoDst,argList.first());
         }
         if(_destination < 0 || _destination > 1000000){
-            throw WrongGotoDst;
+            throw Exception(WrongGotoDst,argList.first());
         }
     }
     catch(Exception e){
@@ -425,7 +428,7 @@ int GotoStatement::exec(Context *context)
 
 void GotoStatement::printSyntaxTree() const
 {
-    if(_buildException != NoException){
+    if(_buildException.type != NoException){
         Statement::printErrSyntaxTree();
         return ;
     }
@@ -450,8 +453,8 @@ void EndStatement::printSyntaxTree() const
     std::cout << _lineNum << " END  " << _runTime.count << std::endl;
 }
 
-ErrStatement::ErrStatement(const QString &source, Exception buildException)
-    :Statement(-1,"ERR",source,buildException)
+ErrStatement::ErrStatement(int lineNum, const QString &source, Exception buildException)
+    :Statement(lineNum,"ERR",source,buildException)
 {
 }
 

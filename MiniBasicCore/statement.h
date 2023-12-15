@@ -13,7 +13,9 @@ union RunTime{
 
 class Statement{
 public:
-    static Statement* newStatement(const QString &src);
+    //解析字符串语句自动解析生成语句,
+    //lineNumCheck表示是否检查行号范围
+    static Statement* newStatement(const QString &src,bool lineNumCheck = true);
     //打印错误的语法树
     static void printErrSyntaxTree();
 
@@ -43,7 +45,7 @@ protected:
 
 class ErrStatement: public Statement{
 public:
-    ErrStatement(const QString& source, Exception buildException);
+    ErrStatement(int lineNum, const QString& source, Exception buildException);
     int exec(Context *context) override;
     void printSyntaxTree() const override;
 };

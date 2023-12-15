@@ -19,7 +19,7 @@ QString Expression::infix2Suffix(const QString &str)
             }
             else if(mode == read_digit){
                 //使用非法变量名
-                throw WrongVarName;
+                throw Exception(WrongVarName);
             }
             else{
                 //start to read var
@@ -65,14 +65,14 @@ QString Expression::infix2Suffix(const QString &str)
             else if(ch == ')'){
                 if(iterator != str.begin() && *(iterator - 1) == '('){
                     //空括号
-                    throw EmptyExpr;
+                    throw Exception(EmptyExpr);
                 }
                 while(!st.empty() && st.top() != '('){
                     ret.append(st.pop());
                 }
                 if(st.empty()){
                     //多余右括号不匹配
-                    throw BracketsNotMatch;
+                    throw Exception(BracketsNotMatch);
                 }
                 //弹出'('
                 st.pop();
@@ -96,7 +96,7 @@ QString Expression::infix2Suffix(const QString &str)
             }
             else {
                 //未知运算符
-                throw UnknownOp;
+                throw Exception(UnknownOp,QString(ch));
             }
         }
     }
@@ -111,7 +111,7 @@ QString Expression::infix2Suffix(const QString &str)
     while(!st.empty()){
         if(st.top() == '('){
             //多余左括号不匹配
-            throw BracketsNotMatch;
+            throw Exception(BracketsNotMatch);
         }
         ret.append(st.pop());
     }
@@ -168,17 +168,17 @@ Expression::Expression(const QString &str)
             if(st.size() < 2){
                 //运算数小于2
                 //运算符操作数不匹配
-                throw ParseError;
+                throw Exception(ParseError);
             }
             rightNode = st.pop();
             leftNode = st.pop();
             st.push(new ExpNode(node_op,QString(ch),leftNode,rightNode));
         }
         if(st.empty()){
-            throw EmptyExpr;
+            throw Exception(EmptyExpr);
         }
         if(st.size() > 1){
-            throw ParseError;
+            throw Exception(ParseError);
         }
     }
     catch(Exception e){
@@ -220,7 +220,7 @@ int32_t Expression::value(Context *context, ExpNode *node)
     if(node->type == node_var){
         if(!context->varTable.contains(node->data)){
             //使用未定义的变量
-            throw UseBeforeDeclare;
+            throw Exception(UseBeforeDeclare,node->data);
         }
         else{
             //使用次数++

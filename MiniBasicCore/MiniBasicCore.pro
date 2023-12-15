@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         context.cpp \
         core.cpp \
+        exception.cpp \
         expression.cpp \
         main.cpp \
         statement.cpp
@@ -29,6 +30,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     context.h \
     core.h \
+    exception.h \
     expression.h \
     inc.h \
     statement.h

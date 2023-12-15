@@ -67,7 +67,7 @@ void Context::printUseCount() const
 int Context::executeCode(Statement *code)
 {
     try {
-        if(code->getBuildException() != NoException){
+        if(code->getBuildException().type != NoException){
             throw code->getBuildException();
         }
         else{
@@ -75,7 +75,16 @@ int Context::executeCode(Statement *code)
         }
     }
     catch(Exception e){
-        cerr << "throw Exception " << int(e) << endl;
+        if(code->getLineNum() == -1){
+            cerr << "?: ";
+        }
+        else if(code->getLineNum() == 0){
+            cerr << "脚本: ";
+        }
+        else{
+            cerr << "行" << code->getLineNum() << ": ";
+        }
+        cerr << e.toString().toStdString() << endl;
         ++PC;
         return 1;
     }
@@ -109,5 +118,5 @@ void Context::gotoLine(int dst)
         }
     }
     //目标不存在
-    throw WrongGotoDst;
+    throw Exception(WrongGotoDst,QString::number(dst));
 }

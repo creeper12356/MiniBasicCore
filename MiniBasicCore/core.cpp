@@ -90,7 +90,8 @@ int Core::exec(int argc,char* argv[])
         else if(argList[0] == "cmd"){
             QString qCmd = QString::fromStdString(cmd);
             qCmd.remove(0,strlen("cmd"));
-            Statement *stmt = Statement::newStatement("1" + qCmd);
+            //使用行号0表示脚本
+            Statement *stmt = Statement::newStatement("0" + qCmd,false);
             context->executeCode(stmt);
             delete stmt;
         }
