@@ -8,6 +8,8 @@
 #include <QMap>
 #include <QString>
 #include <QStringList>
+#include <QFile>
+#include <QDir>
 
 #include <iostream>
 #include <string>

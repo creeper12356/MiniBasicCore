@@ -256,7 +256,7 @@ int32_t Expression::value(Context *context)
     //assert root != nullptr
     return value(context,root);
 }
-void Expression::printExpTree(int baseIndentation) const
+void Expression::printExpTree(QTextStream &out, int baseIndentation) const
 {
     if(!root) return ;
 
@@ -268,18 +268,18 @@ void Expression::printExpTree(int baseIndentation) const
         qu.pop_front();
         //基础缩进
         for(int i = 0;i < baseIndentation;++i){
-            std::cout << '\t';
+            out << '\t';
         }
         //附加缩进
         for(int i = 0;i < cur.level;++i){
-            std::cout << '\t';
+            out << '\t';
         }
-        std::string printInfo = cur.node->data.toStdString();
+        QString printInfo = cur.node->data;
         if(printInfo == "%"){
             //替换取余号
             printInfo = "MOD";
         }
-        std::cout << printInfo << std::endl;
+        out << printInfo << endl;
         if(cur.node->left){
             qu.push_back(ExpNodeWrapper(cur.node->left,cur.level + 1));
         }

@@ -4,10 +4,16 @@
 Core::Core()
 {
     context = new Context;
+    QProcess::execute("bash",QStringList() << "-c" << "touch tree.display");
+    treeDisplay.setFileName("./tree.display");
+    treeDisplay.open(QIODevice::WriteOnly);
+    treeOut.setDevice(&treeDisplay);
 }
 
 Core::~Core()
 {
+    treeDisplay.close();
+    QProcess::execute("bash",QStringList() << "-c" << "rm tree.display");
     delete context;
 }
 int Core::exec(int argc,char* argv[])
@@ -76,7 +82,7 @@ int Core::exec(int argc,char* argv[])
             context->runCodes();
         }
         else if(argList[0] == "analyze"){
-            context->analyze();
+            context->analyze(treeOut);
         }
         else if(argList[0] == "vartable"){
             context->printVarTable();

@@ -19,7 +19,7 @@ public:
     void clearCodes();
     void clearRunningStatus();
     void listCodes() const;
-    void analyze() const;
+    void analyze(QTextStream& out) const;
     void printVarTable() const;
     void printRunTime() const;
     void printUseCount() const;

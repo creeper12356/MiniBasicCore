@@ -74,9 +74,9 @@ Statement *Statement::newStatement(const QString &src, bool lineNumCheck)
     }
 }
 
-void Statement::printErrSyntaxTree()
+void Statement::printErrSyntaxTree(QTextStream& out)
 {
-    std::cout << "Error" << std::endl;
+    out << "Error" << endl;
 }
 
 Statement::Statement(int lineNum, StatementType type, const QString &source,Exception buildException)
@@ -116,10 +116,10 @@ int RemStatement::exec(Context *context)
     return 1;
 }
 
-void RemStatement::printSyntaxTree() const
+void RemStatement::printSyntaxTree(QTextStream &out) const
 {
-    std::cout << _lineNum << " REM  " << _runTime.count << std::endl;
-    std::cout << "\t" << _comment.toStdString() << std::endl;
+    out << _lineNum << " REM  " << _runTime.count << endl;
+    out << "\t" << _comment << endl;
 }
 
 LetStatement::LetStatement(int lineNum, const QString &source, const QStringList &argList)
@@ -180,15 +180,15 @@ int LetStatement::exec(Context *context)
     return 1;
 }
 
-void LetStatement::printSyntaxTree() const
+void LetStatement::printSyntaxTree(QTextStream &out) const
 {
     if(_buildException.type != NoException){
-        Statement::printErrSyntaxTree();
+        Statement::printErrSyntaxTree(out);
         return ;
     }
-    std::cout << _lineNum << " LET =  " << _runTime.count << std::endl;
-    _leftExpr->printExpTree(1);
-    _rightExpr->printExpTree(1);
+    out << _lineNum << " LET =  " << _runTime.count <<endl;
+    _leftExpr->printExpTree(out,1);
+    _rightExpr->printExpTree(out,1);
 }
 
 PrintStatement::PrintStatement(int lineNum, const QString &source, const QStringList &argList)
@@ -217,14 +217,14 @@ int PrintStatement::exec(Context *context)
     return 1;
 }
 
-void PrintStatement::printSyntaxTree() const
+void PrintStatement::printSyntaxTree(QTextStream &out) const
 {
     if(_buildException.type != NoException){
-        Statement::printErrSyntaxTree();
+        Statement::printErrSyntaxTree(out);
         return ;
     }
-    std::cout << _lineNum << " PRINT  " << _runTime.count << std::endl;
-    _expr->printExpTree(1);
+    out << _lineNum << " PRINT  " << _runTime.count << endl;
+    _expr->printExpTree(out,1);
 }
 
 InputStatement::InputStatement(int lineNum, const QString &source, const QStringList &argList)
@@ -269,14 +269,14 @@ int InputStatement::exec(Context *context)
     return 1;
 }
 
-void InputStatement::printSyntaxTree() const
+void InputStatement::printSyntaxTree(QTextStream &out) const
 {
     if(_buildException.type != NoException){
-        Statement::printErrSyntaxTree();
+        Statement::printErrSyntaxTree(out);
         return ;
     }
-    std::cout << _lineNum << " INPUT  " << _runTime.count << std::endl;
-    _expr->printExpTree(1);
+    out << _lineNum << " INPUT  " << _runTime.count << endl;
+    _expr->printExpTree(out,1);
 }
 IfStatement::IfStatement(int lineNum,const QString& source,QStringList argList)
     :Statement(lineNum,"IF",source)
@@ -367,19 +367,19 @@ int IfStatement::exec(Context *context)
     return 1;
 }
 
-void IfStatement::printSyntaxTree() const
+void IfStatement::printSyntaxTree(QTextStream &out) const
 {
     if(_buildException.type != NoException){
-        Statement::printErrSyntaxTree();
+        Statement::printErrSyntaxTree(out);
         return ;
     }
-    std::cout << _lineNum << " IF THEN  "
-              << _runTime.conditionCount.trueCount << " "
-              << _runTime.conditionCount.falseCount << std::endl;
-    _conditionLeft->printExpTree(1);
-    std::cout << '\t' << _conditionOp.toLatin1() << std::endl;
-    _conditionRight->printExpTree(1);
-    std::cout << '\t' << _destination << std::endl;
+    out << _lineNum << " IF THEN  "
+        << _runTime.conditionCount.trueCount << " "
+        << _runTime.conditionCount.falseCount << endl;
+    _conditionLeft->printExpTree(out,1);
+    out << '\t' << _conditionOp << endl;
+    _conditionRight->printExpTree(out,1);
+    out << '\t' << _destination << endl;
 }
 
 void IfStatement::updateRunTime(bool flag)
@@ -426,14 +426,14 @@ int GotoStatement::exec(Context *context)
     return 1;
 }
 
-void GotoStatement::printSyntaxTree() const
+void GotoStatement::printSyntaxTree(QTextStream& out) const
 {
     if(_buildException.type != NoException){
-        Statement::printErrSyntaxTree();
+        Statement::printErrSyntaxTree(out);
         return ;
     }
-    std::cout << _lineNum << " GOTO  " << _runTime.count << std::endl;
-    std::cout << '\t' << _destination << std::endl;
+    out << _lineNum << " GOTO  " << _runTime.count << endl;
+    out << '\t' << _destination << endl;
 }
 
 EndStatement::EndStatement(int lineNum, const QString &source)
@@ -448,9 +448,9 @@ int EndStatement::exec(Context *context)
     return 0;
 }
 
-void EndStatement::printSyntaxTree() const
+void EndStatement::printSyntaxTree(QTextStream &out) const
 {
-    std::cout << _lineNum << " END  " << _runTime.count << std::endl;
+    out << _lineNum << " END  " << _runTime.count << endl;
 }
 
 ErrStatement::ErrStatement(int lineNum, const QString &source, Exception buildException)
@@ -465,7 +465,7 @@ int ErrStatement::exec(Context *context)
     return 0;
 }
 
-void ErrStatement::printSyntaxTree() const
+void ErrStatement::printSyntaxTree(QTextStream& out) const
 {
-    Statement::printErrSyntaxTree();
+    Statement::printErrSyntaxTree(out);
 }

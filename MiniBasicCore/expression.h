@@ -47,8 +47,8 @@ public:
     int32_t value(Context *context, ExpNode* node);
     int32_t value(Context *context);
 
-    //在baseIndentation缩进下打印表达式树到标准输出
-    void printExpTree(int baseIndentation = 0) const;
+    //在baseIndentation缩进下打印表达式树到流out
+    void printExpTree(QTextStream& out,int baseIndentation = 0) const;
 };
 
 #endif // EXPRESSION_H
