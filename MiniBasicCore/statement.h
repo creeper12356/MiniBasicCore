@@ -2,7 +2,7 @@
 #define STATEMENT_H
 #include "inc.h"
 #include "expression.h"
-//运行次数
+//运行次数结构体
 union RunTime{
     int count;
     struct {
@@ -17,16 +17,20 @@ public:
     //打印错误的语法树
     static void printErrSyntaxTree();
 
-    Statement(int lineNum, StatementType type, const QString &source, Exception buildException = NoException);
+    Statement(int lineNum, StatementType type, const QString &source,
+              Exception buildException = NoException);
     virtual ~Statement(){}
+public:
     virtual int exec(Context* context) = 0;
     virtual void printSyntaxTree() const = 0;
     virtual void updateRunTime(bool flag = true);
     virtual void printRunTime() const;
+
     int getLineNum() const{return _lineNum;}
     const StatementType& getType() const{return _type;}
     const QString& getSource() const{return _source;}
     Exception getBuildException() const {return _buildException;}
+
     void clearRunTime();
 protected:
     int _lineNum;
