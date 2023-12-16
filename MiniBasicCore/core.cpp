@@ -12,14 +12,13 @@ Core::~Core()
 }
 int Core::exec(int argc,char* argv[])
 {
-    bool silentFlag = false;
-    if(argc == 2 && strcmp(argv[1],"-s") == 0){
-        //-s选项，不进行任何调试输出
-        silentFlag = true;
+    bool backendFlag = false;
+    if(argc == 2 && strcmp(argv[1],"-b") == 0){
+        backendFlag = true;
     }
     string cmd;
     while(true){
-        (!silentFlag) && cout << ">>>";
+        (!backendFlag) && (cout << ">>>");
         if(!getline(cin,cmd)){
             break;
         }
@@ -39,7 +38,7 @@ int Core::exec(int argc,char* argv[])
             context->clearCodes();
             string code;
             while(true){
-                (!silentFlag) && cout << "$";
+                (!backendFlag) && (cout << "$");
                 if(!getline(cin,code)){
                     //TODO exception when typing ctrlD
                     cin.clear();
@@ -56,7 +55,7 @@ int Core::exec(int argc,char* argv[])
         else if(argList[0] == "append"){
             string code;
             while(true){
-                (!silentFlag) && cout << "$";
+                (!backendFlag) && (cout << "$");
                 getline(cin,code);
                 if(code == ""){
                     //空行停止接收输入
@@ -74,14 +73,15 @@ int Core::exec(int argc,char* argv[])
         else if(argList[0] == "run"){
             context->clearRunningStatus();
             context->runCodes();
+            //mark run finished
+            backendFlag && (cout << "$");
         }
         else if(argList[0] == "analyze"){
-            QString str;
-            QTextStream out(&str,QIODevice::WriteOnly);
-            out << "#";
+            QTextStream out(stdout);
+
+            backendFlag && (cout << "#");
             context->analyze(out);
-            out << "#";
-            cout << str.toStdString();
+            backendFlag && (cout << "#");
         }
         else if(argList[0] == "vartable"){
             context->printVarTable();
