@@ -10,6 +10,9 @@
 #include <QStringList>
 #include <QFile>
 #include <QDir>
+#include <QDataStream>
+#include <QByteArray>
+
 #include <iostream>
 #include <string>
 

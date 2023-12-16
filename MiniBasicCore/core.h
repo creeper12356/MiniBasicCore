@@ -12,8 +12,6 @@ public:
     void usage() const;
 private:
     Context* context = nullptr;
-    QFile treeDisplay;
-    QTextStream treeOut;
 };
 
 
