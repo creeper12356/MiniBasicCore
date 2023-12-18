@@ -29,6 +29,7 @@ public:
         :type(arg_t),info(arg_i){}
     //将异常转换为可读字符串
     QString toString() const;
+    std::string toStdString() const;
 };
 
 #endif // EXCEPTION_H

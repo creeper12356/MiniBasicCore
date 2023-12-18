@@ -74,9 +74,9 @@ Statement *Statement::newStatement(const QString &src, bool lineNumCheck)
     }
 }
 
-void Statement::printErrSyntaxTree(QTextStream& out)
+void Statement::printErrSyntaxTree(QTextStream& out) const
 {
-    out << "Error" << endl;
+    out << getLineNumStr() << " Error" << endl;
 }
 
 Statement::Statement(int lineNum, StatementType type, const QString &source,Exception buildException)
@@ -96,6 +96,19 @@ void Statement::updateRunTime(bool flag)
 void Statement::printRunTime() const
 {
     std::cout << _runTime.count << std::endl;
+}
+
+QString Statement::getLineNumStr() const
+{
+    if(_lineNum == -1){
+        return "?";
+    }
+    else if(_lineNum == 0){
+        return "脚本";
+    }
+    else {
+        return QString::number(_lineNum);
+    }
 }
 
 void Statement::clearRunTime()

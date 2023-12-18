@@ -75,16 +75,8 @@ int Context::executeCode(Statement *code)
         }
     }
     catch(Exception e){
-        if(code->getLineNum() == -1){
-            cerr << "?: ";
-        }
-        else if(code->getLineNum() == 0){
-            cerr << "脚本: ";
-        }
-        else{
-            cerr << "行" << code->getLineNum() << ": ";
-        }
-        cerr << e.toString().toStdString() << endl;
+        cerr << code->getLineNumStr().toStdString() << ": ";
+        cerr << e.toStdString() << endl;
         ++PC;
         return 1;
     }

@@ -7,6 +7,8 @@
 * (Ok)取消变量名中文支持
 * 禁止使用关键字作为变量名
 * 取消Statement构造函数中clearRunTime
+* 关于负数的表达式树
+* 实现乘方运算
 ## **BUG report**
 
 ## **Question list**

@@ -16,8 +16,6 @@ public:
     //解析字符串语句自动解析生成语句,
     //lineNumCheck表示是否检查行号范围
     static Statement* newStatement(const QString &src,bool lineNumCheck = true);
-    //打印错误的语法树
-    static void printErrSyntaxTree(QTextStream& out);
 
     Statement(int lineNum, StatementType type, const QString &source,
               Exception buildException = NoException);
@@ -25,10 +23,13 @@ public:
 public:
     virtual int exec(Context* context) = 0;
     virtual void printSyntaxTree(QTextStream& out) const = 0;
+    void printErrSyntaxTree(QTextStream& out) const;
+
     virtual void updateRunTime(bool flag = true);
     virtual void printRunTime() const;
 
     int getLineNum() const{return _lineNum;}
+    QString getLineNumStr() const;
     const StatementType& getType() const{return _type;}
     const QString& getSource() const{return _source;}
     Exception getBuildException() const {return _buildException;}

@@ -19,3 +19,8 @@ QString Exception::toString() const
     case WrongGotoDst: return QString("错误的跳转地址'%1'").arg(info);
     }
 }
+
+std::string Exception::toStdString() const
+{
+    return toString().toStdString();
+}
