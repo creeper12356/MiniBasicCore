@@ -17,6 +17,7 @@ QString Exception::toString() const
     case WrongLineNum: return "错误的行号";
     case UnknownStatementType: return QString("未知语句类型'%1'").arg(info);
     case WrongGotoDst: return QString("错误的跳转地址'%1'").arg(info);
+    case WrongExp: return "幂指数不能为负";
     }
 }
 

@@ -1,9 +1,11 @@
 #include "statement.h"
 #include "context.h"
 
-Statement *Statement::newStatement(Context* context , const QString &src, bool lineNumCheck)
+Statement *Statement::newStatement(Context* context , QString src, bool lineNumCheck)
 {
     int lineNum = -1;
+    //将乘方运算符转化成单字符表示，便于处理
+    src.replace("**" , "^");
     try{
         QStringList argList = src.split(" " ,QString::SkipEmptyParts);
         int size = argList.size();

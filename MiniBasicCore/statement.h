@@ -15,7 +15,7 @@ class Statement{
 public:
     //解析字符串语句自动解析生成语句,
     //lineNumCheck表示是否检查行号范围
-    static Statement* newStatement(Context* context, const QString &src, bool lineNumCheck = true);
+    static Statement* newStatement(Context* context, QString src, bool lineNumCheck = true);
 
     Statement(Context* context , int lineNum, StatementType type, const QString &source,
               Exception buildException = NoException);

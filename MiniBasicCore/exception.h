@@ -18,6 +18,7 @@ enum exception_type{
     WrongLineNum,	//行号要求位于1-1000,000之间
     UnknownStatementType,
     WrongGotoDst,
+    WrongExp
 };
 
 class Exception{

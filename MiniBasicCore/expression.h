@@ -13,8 +13,8 @@ enum ExpType{exp_var,exp_digit,exp_compound};
 struct ExpNode{
     ExpNodeType type;
     QString data;
-    ExpNode* left;
-    ExpNode* right;
+    ExpNode* left = nullptr;
+    ExpNode* right = nullptr;
 
     ExpNode(ExpNodeType type,const QString& data,ExpNode* left = nullptr,ExpNode* right = nullptr);
     ~ExpNode();

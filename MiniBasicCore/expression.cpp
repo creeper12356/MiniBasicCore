@@ -68,6 +68,7 @@ QString Expression::infix2Suffix(const QString &str)
                     throw Exception(EmptyExpr);
                 }
                 while(!st.empty() && st.top() != '('){
+                    //弹出匹配的左括号之前的所有运算符
                     ret.append(st.pop());
                 }
                 if(st.empty()){
@@ -83,15 +84,19 @@ QString Expression::infix2Suffix(const QString &str)
                     //遇到正负号，补全操作数0
                     ret.append("[0]");
                 }
-                while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '%' || st.top() == '+' || st.top() == '-')){
+                while(!st.empty() && (st.top() == '^' && st.top() == '*' || st.top() == '/' || st.top() == '%' || st.top() == '+' || st.top() == '-')){
                     ret.append(st.pop());
                 }
                 st.push(ch);
             }
             else if(ch == '*' || ch == '/' || ch == '%'){
-                while(!st.empty() && (st.top() == '*' || st.top() == '/' || st.top() == '%')){
+                while(!st.empty() && (st.top() == '^' && st.top() == '*' || st.top() == '/' || st.top() == '%')){
                     ret.append(st.pop());
                 }
+                st.push(ch);
+            }
+            else if(ch == '^'){
+                //乘方为右结合运算，只能先压栈
                 st.push(ch);
             }
             else {
@@ -115,6 +120,7 @@ QString Expression::infix2Suffix(const QString &str)
         }
         ret.append(st.pop());
     }
+    qDebug() << "suffix : " << ret;
     return ret;
 }
 Expression::Expression(const QString &str)
@@ -183,9 +189,20 @@ Expression::Expression(const QString &str)
     }
     catch(Exception e){
         //处理已分配动态空间
-        for(auto node:st){
+        for(ExpNode* node:st){
+            if(node == leftNode) {
+                qDebug() << "leftnode dup";
+                leftNode = nullptr;
+            }
+            if(node == rightNode) {
+                qDebug() << "rightnode dup" ;
+                rightNode = nullptr;
+            }
             delete node;
+            node = nullptr;
         }
+        qDebug() << "leftNode: " << leftNode;
+        qDebug() << "rightNode: " << rightNode;
         if(leftNode) delete leftNode;
         if(rightNode) delete rightNode;
         //向上一层抛出异常
@@ -249,6 +266,17 @@ int32_t Expression::value(Context *context, ExpNode *node)
     else if(node->data == "%"){
         return value(context, node->left) % value(context, node->right);
     }
+    else if(node->data == "^"){
+        int exp = value(context, node->right);
+        if(exp < 0){
+            throw Exception(WrongExp);
+        }
+        return qPow(value(context, node->left), exp);
+    }
+    else{
+        qDebug() << "Control never reaches here.";
+        return 0;
+    }
 }
 
 int32_t Expression::value(Context *context)
@@ -300,8 +328,10 @@ ExpNode::~ExpNode()
 {
     if(left){
         delete left;
+        left = nullptr;
     }
     if(right){
         delete right;
+        right = nullptr;
     }
 }

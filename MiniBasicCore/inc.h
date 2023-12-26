@@ -12,6 +12,7 @@
 #include <QDir>
 #include <QDataStream>
 #include <QByteArray>
+#include <QtMath>
 
 #include <iostream>
 #include <string>
