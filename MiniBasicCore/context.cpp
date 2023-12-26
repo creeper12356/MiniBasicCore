@@ -71,7 +71,7 @@ int Context::executeCode(Statement *code)
             throw code->getBuildException();
         }
         else{
-            return code->exec(this);
+            return code->exec();
         }
     }
     catch(Exception e){

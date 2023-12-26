@@ -21,7 +21,7 @@ public:
               Exception buildException = NoException);
     virtual ~Statement(){}
 public:
-    virtual int exec(Context* context) = 0;
+    virtual int exec() = 0;
     virtual void printSyntaxTree(QTextStream& out) const = 0;
     void printErrSyntaxTree(QTextStream& out) const;
 
@@ -48,7 +48,7 @@ protected:
 class ErrStatement: public Statement{
 public:
     ErrStatement(Context* context , int lineNum, const QString& source, Exception buildException);
-    int exec(Context *context) override;
+    int exec() override;
     void printSyntaxTree(QTextStream& out) const override;
 };
 
@@ -58,7 +58,7 @@ private:
     QString _comment;
 public:
     RemStatement(Context *context , int lineNum, const QString &source, const QStringList& argList);
-    int exec(Context* context) override;
+    int exec() override;
     void printSyntaxTree(QTextStream& out) const override;
 };
 
@@ -69,7 +69,7 @@ private:
 public:
     LetStatement(Context* context , int lineNum , const QString& source, const QStringList& argList);
     ~LetStatement() override;
-    int exec(Context* context) override;
+    int exec() override;
     void printSyntaxTree(QTextStream& out) const override;
 };
 
@@ -79,7 +79,7 @@ private:
 public:
     PrintStatement(Context* context , int lineNum,const QString& source,const QStringList& argList);
     ~PrintStatement() override;
-    int exec(Context* context) override;
+    int exec() override;
     void printSyntaxTree(QTextStream& out) const override;
 };
 
@@ -89,7 +89,7 @@ private:
 public:
     InputStatement(Context* context , int lineNum,const QString& source,const QStringList& argList);
     ~InputStatement() override;
-    int exec(Context* context) override;
+    int exec() override;
     void printSyntaxTree(QTextStream& out) const override;
 };
 
@@ -98,7 +98,7 @@ private:
     int _destination;
 public:
     GotoStatement(Context* context , int lineNum,const QString& source,const QStringList& argList);
-    int exec(Context* context) override;
+    int exec() override;
     void printSyntaxTree(QTextStream& out) const override;
 };
 
@@ -111,7 +111,7 @@ private:
 public:
     IfStatement(Context* context , int lineNum, const QString& source, QStringList argList);
     ~IfStatement() override;
-    int exec(Context* context) override;
+    int exec() override;
     void printSyntaxTree(QTextStream& out) const override;
     void updateRunTime(bool flag) override;
     void printRunTime() const override;
@@ -120,7 +120,7 @@ public:
 class EndStatement: public Statement{
 public:
     EndStatement(Context* context , int lineNum,const QString& source);
-    int exec(Context* context) override;
+    int exec() override;
     void printSyntaxTree(QTextStream& out) const override;
 };
 

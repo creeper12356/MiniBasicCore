@@ -123,9 +123,9 @@ RemStatement::RemStatement(Context* context, int lineNum, const QString& source,
 {
 }
 
-int RemStatement::exec(Context *context)
+int RemStatement::exec()
 {
-    context->PC += 1;
+    _context->PC += 1;
     updateRunTime();
     return 1;
 }
@@ -176,20 +176,20 @@ LetStatement::~LetStatement()
     if(_rightExpr) delete _rightExpr;
 }
 
-int LetStatement::exec(Context *context)
+int LetStatement::exec()
 {
     if(_leftExpr->getType() != exp_var){
         //左值不是变量
         throw Exception(WrongLeftValue);
     }
     //先解析,解析无误后再赋值
-    int32_t parseRes = _rightExpr->value(context);
-    if(!context->useCount.contains(_leftExpr->getRootData())){
+    int32_t parseRes = _rightExpr->value(_context);
+    if(!_context->useCount.contains(_leftExpr->getRootData())){
         //新定义变量
-        context->useCount[_leftExpr->getRootData()] = 0;
+        _context->useCount[_leftExpr->getRootData()] = 0;
     }
-    context->varTable[_leftExpr->getRootData()] = parseRes;
-    context->PC += 1;
+    _context->varTable[_leftExpr->getRootData()] = parseRes;
+    _context->PC += 1;
     updateRunTime();
     return 1;
 }
@@ -201,7 +201,21 @@ void LetStatement::printSyntaxTree(QTextStream &out) const
         return ;
     }
     out << _lineNum << " LET =  " << _runTime.count <<endl;
-    _leftExpr->printExpTree(out,1);
+    if(_leftExpr->getType() == exp_var){
+        out << "\t" << _leftExpr->getRootData() << " " ;
+        //输出使用次数
+        if(!_context->useCount.contains(_leftExpr->getRootData())){
+            //代码未运行时，varTable 和 useCount中可能不存在该变量
+            //前端一定只可能在run之后调用analyze命令
+            out << 0 << endl;
+        }
+        else{
+            out << _context->useCount[_leftExpr->getRootData()] << endl;
+        }
+    }
+    else{
+        _leftExpr->printExpTree(out , 1);
+    }
     _rightExpr->printExpTree(out,1);
 }
 
@@ -223,10 +237,10 @@ PrintStatement::~PrintStatement()
     if(_expr) delete _expr;
 }
 
-int PrintStatement::exec(Context *context)
+int PrintStatement::exec()
 {
-    std::cout << _expr->value(context) << std::endl;
-    context->PC += 1;
+    std::cout << _expr->value(_context) << std::endl;
+    _context->PC += 1;
     updateRunTime();
     return 1;
 }
@@ -265,7 +279,7 @@ InputStatement::~InputStatement()
     if(_expr) delete _expr;
 }
 
-int InputStatement::exec(Context *context)
+int InputStatement::exec()
 {
     //assert _expr.type == exp_var
     std::cout << "?";
@@ -273,12 +287,12 @@ int InputStatement::exec(Context *context)
     //TODO 前端保证，用户只能输入一个整数
     std::cin >> input;
     std::cin.get();
-    if(!context->varTable.contains(_expr->getRootData())){
+    if(!_context->varTable.contains(_expr->getRootData())){
         //新定义变量
-        context->useCount[_expr->getRootData()] = 0;
+        _context->useCount[_expr->getRootData()] = 0;
     }
-    context->varTable[_expr->getRootData()] = input;
-    context->PC += 1;
+    _context->varTable[_expr->getRootData()] = input;
+    _context->PC += 1;
     updateRunTime();
     return 1;
 }
@@ -356,26 +370,26 @@ IfStatement::~IfStatement()
     if(_conditionRight) delete _conditionRight;
 }
 
-int IfStatement::exec(Context *context)
+int IfStatement::exec()
 {
     //解析布尔表达式
     bool parseRes;
     if(_conditionOp == '>'){
-        parseRes = _conditionLeft->value(context) > _conditionRight->value(context);
+        parseRes = _conditionLeft->value(_context) > _conditionRight->value(_context);
     }
     else if(_conditionOp == '='){
-        parseRes = _conditionLeft->value(context) == _conditionRight->value(context);
+        parseRes = _conditionLeft->value(_context) == _conditionRight->value(_context);
     }
     else if(_conditionOp == '<'){
-        parseRes = _conditionLeft->value(context) < _conditionRight->value(context);
+        parseRes = _conditionLeft->value(_context) < _conditionRight->value(_context);
     }
 
     //条件跳转
     if(parseRes){
-        context->gotoLine(_destination);
+        _context->gotoLine(_destination);
     }
     else{
-        context->PC += 1;
+        _context->PC += 1;
     }
     updateRunTime(parseRes);
     return 1;
@@ -433,9 +447,9 @@ GotoStatement::GotoStatement(Context *context, int lineNum, const QString &sourc
     }
 }
 
-int GotoStatement::exec(Context *context)
+int GotoStatement::exec()
 {
-    context->gotoLine(_destination);
+    _context->gotoLine(_destination);
     updateRunTime();
     return 1;
 }
@@ -455,9 +469,9 @@ EndStatement::EndStatement(Context *context, int lineNum, const QString &source)
 {
 }
 
-int EndStatement::exec(Context *context)
+int EndStatement::exec()
 {
-    context->PC += 1;
+    _context->PC += 1;
     updateRunTime();
     return 0;
 }
@@ -472,7 +486,7 @@ ErrStatement::ErrStatement(Context* context ,int lineNum, const QString &source,
 {
 }
 
-int ErrStatement::exec(Context *context)
+int ErrStatement::exec()
 {
     //永远不会被调用
     //no need to update run time
