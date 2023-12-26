@@ -1,7 +1,7 @@
 #include "statement.h"
 #include "context.h"
 
-Statement *Statement::newStatement(const QString &src, bool lineNumCheck)
+Statement *Statement::newStatement(Context* context , const QString &src, bool lineNumCheck)
 {
     int lineNum = -1;
     try{
@@ -43,25 +43,25 @@ Statement *Statement::newStatement(const QString &src, bool lineNumCheck)
             }
         }
         if(type == "REM"){
-            return new RemStatement(lineNum,src,argList);
+            return new RemStatement(context,lineNum,src,argList);
         }
         else if(type == "LET"){
-            return new LetStatement(lineNum,src,argList);
+            return new LetStatement(context ,lineNum,src,argList);
         }
         else if(type == "PRINT"){
-            return new PrintStatement(lineNum,src,argList);
+            return new PrintStatement(context , lineNum,src,argList);
         }
         else if(type == "INPUT"){
-            return new InputStatement(lineNum,src,argList);
+            return new InputStatement(context , lineNum,src,argList);
         }
         else if(type == "GOTO"){
-            return new GotoStatement(lineNum,src,argList);
+            return new GotoStatement(context , lineNum,src,argList);
         }
         else if(type == "IF"){
-            return new IfStatement(lineNum,src,argList);
+            return new IfStatement(context , lineNum,src,argList);
         }
         else if(type == "END"){
-            return new EndStatement(lineNum,src);
+            return new EndStatement(context , lineNum,src);
         }
         else{
             //未知语句类型
@@ -70,7 +70,7 @@ Statement *Statement::newStatement(const QString &src, bool lineNumCheck)
     }
     catch(Exception e){
         //处理基本构造失败的语句
-        return new ErrStatement(lineNum,src,e);
+        return new ErrStatement(context , lineNum,src,e);
     }
 }
 
@@ -79,8 +79,9 @@ void Statement::printErrSyntaxTree(QTextStream& out) const
     out << getLineNumStr() << " Error" << endl;
 }
 
-Statement::Statement(int lineNum, StatementType type, const QString &source,Exception buildException)
-    :_lineNum(lineNum)
+Statement::Statement(Context *context, int lineNum, StatementType type, const QString &source, Exception buildException)
+    :_context(context)
+    ,_lineNum(lineNum)
     ,_type(type)
     ,_source(source)
     ,_buildException(buildException)
@@ -116,8 +117,8 @@ void Statement::clearRunTime()
     _runTime.conditionCount.trueCount = _runTime.conditionCount.falseCount = 0;
 }
 
-RemStatement::RemStatement(int lineNum, const QString& source, const QStringList &argList)
-    :Statement(lineNum,"REM",source)
+RemStatement::RemStatement(Context* context, int lineNum, const QString& source, const QStringList &argList)
+    :Statement(context , lineNum ,"REM",source)
     ,_comment(argList.join(" "))
 {
 }
@@ -135,8 +136,8 @@ void RemStatement::printSyntaxTree(QTextStream &out) const
     out << "\t" << _comment << endl;
 }
 
-LetStatement::LetStatement(int lineNum, const QString &source, const QStringList &argList)
-    :Statement(lineNum,"LET",source)
+LetStatement::LetStatement(Context *context, int lineNum, const QString &source, const QStringList &argList)
+    :Statement(context , lineNum,"LET",source)
 {
     QString obj = argList.join("");
     int assignmentIndex = -1;
@@ -204,8 +205,8 @@ void LetStatement::printSyntaxTree(QTextStream &out) const
     _rightExpr->printExpTree(out,1);
 }
 
-PrintStatement::PrintStatement(int lineNum, const QString &source, const QStringList &argList)
-    :Statement(lineNum,"PRINT",source)
+PrintStatement::PrintStatement(Context *context, int lineNum, const QString &source, const QStringList &argList)
+    :Statement(context , lineNum,"PRINT",source)
 {
     try{
         _expr = new Expression(Expression::infix2Suffix(argList.join("")));
@@ -240,8 +241,8 @@ void PrintStatement::printSyntaxTree(QTextStream &out) const
     _expr->printExpTree(out,1);
 }
 
-InputStatement::InputStatement(int lineNum, const QString &source, const QStringList &argList)
-    :Statement(lineNum,"INPUT",source)
+InputStatement::InputStatement(Context *context, int lineNum, const QString &source, const QStringList &argList)
+    :Statement(context , lineNum,"INPUT",source)
 {
     try{
         _expr = new Expression(Expression::infix2Suffix(argList.join("")));
@@ -291,8 +292,8 @@ void InputStatement::printSyntaxTree(QTextStream &out) const
     out << _lineNum << " INPUT  " << _runTime.count << endl;
     _expr->printExpTree(out,1);
 }
-IfStatement::IfStatement(int lineNum,const QString& source,QStringList argList)
-    :Statement(lineNum,"IF",source)
+IfStatement::IfStatement(Context *context, int lineNum, const QString& source, QStringList argList)
+    :Statement(context , lineNum,"IF",source)
 {
     try{
         //assert argList.size() >= 2
@@ -410,8 +411,8 @@ void IfStatement::printRunTime() const
     std::cout << _runTime.conditionCount.trueCount << "\t"
               << _runTime.conditionCount.falseCount << std::endl;
 }
-GotoStatement::GotoStatement(int lineNum, const QString &source, const QStringList &argList)
-    :Statement(lineNum,"GOTO",source)
+GotoStatement::GotoStatement(Context *context, int lineNum, const QString &source, const QStringList &argList)
+    :Statement(context , lineNum,"GOTO",source)
 {
     bool isNum = false;
     //assert argList.size == 1
@@ -449,8 +450,8 @@ void GotoStatement::printSyntaxTree(QTextStream& out) const
     out << '\t' << _destination << endl;
 }
 
-EndStatement::EndStatement(int lineNum, const QString &source)
-    :Statement(lineNum,"END",source)
+EndStatement::EndStatement(Context *context, int lineNum, const QString &source)
+    :Statement(context , lineNum,"END",source)
 {
 }
 
@@ -466,8 +467,8 @@ void EndStatement::printSyntaxTree(QTextStream &out) const
     out << _lineNum << " END  " << _runTime.count << endl;
 }
 
-ErrStatement::ErrStatement(int lineNum, const QString &source, Exception buildException)
-    :Statement(lineNum,"ERR",source,buildException)
+ErrStatement::ErrStatement(Context* context ,int lineNum, const QString &source, Exception buildException)
+    :Statement(context , lineNum,"ERR",source,buildException)
 {
 }
 

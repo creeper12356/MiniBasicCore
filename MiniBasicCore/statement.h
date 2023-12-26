@@ -15,9 +15,9 @@ class Statement{
 public:
     //解析字符串语句自动解析生成语句,
     //lineNumCheck表示是否检查行号范围
-    static Statement* newStatement(const QString &src,bool lineNumCheck = true);
+    static Statement* newStatement(Context* context, const QString &src, bool lineNumCheck = true);
 
-    Statement(int lineNum, StatementType type, const QString &source,
+    Statement(Context* context , int lineNum, StatementType type, const QString &source,
               Exception buildException = NoException);
     virtual ~Statement(){}
 public:
@@ -36,6 +36,7 @@ public:
 
     void clearRunTime();
 protected:
+    Context* _context = nullptr;
     int _lineNum;
     StatementType _type;
     QString _source;
@@ -46,7 +47,7 @@ protected:
 
 class ErrStatement: public Statement{
 public:
-    ErrStatement(int lineNum, const QString& source, Exception buildException);
+    ErrStatement(Context* context , int lineNum, const QString& source, Exception buildException);
     int exec(Context *context) override;
     void printSyntaxTree(QTextStream& out) const override;
 };
@@ -56,7 +57,7 @@ private:
     //注释内容
     QString _comment;
 public:
-    RemStatement(int lineNum, const QString &source, const QStringList& argList);
+    RemStatement(Context *context , int lineNum, const QString &source, const QStringList& argList);
     int exec(Context* context) override;
     void printSyntaxTree(QTextStream& out) const override;
 };
@@ -66,7 +67,7 @@ private:
     Expression* _leftExpr = nullptr;
     Expression* _rightExpr = nullptr;
 public:
-    LetStatement(int lineNum , const QString& source, const QStringList& argList);
+    LetStatement(Context* context , int lineNum , const QString& source, const QStringList& argList);
     ~LetStatement() override;
     int exec(Context* context) override;
     void printSyntaxTree(QTextStream& out) const override;
@@ -76,7 +77,7 @@ class PrintStatement: public Statement{
 private:
     Expression* _expr = nullptr;
 public:
-    PrintStatement(int lineNum,const QString& source,const QStringList& argList);
+    PrintStatement(Context* context , int lineNum,const QString& source,const QStringList& argList);
     ~PrintStatement() override;
     int exec(Context* context) override;
     void printSyntaxTree(QTextStream& out) const override;
@@ -86,7 +87,7 @@ class InputStatement: public Statement{
 private:
     Expression* _expr = nullptr;
 public:
-    InputStatement(int lineNum,const QString& source,const QStringList& argList);
+    InputStatement(Context* context , int lineNum,const QString& source,const QStringList& argList);
     ~InputStatement() override;
     int exec(Context* context) override;
     void printSyntaxTree(QTextStream& out) const override;
@@ -96,7 +97,7 @@ class GotoStatement: public Statement{
 private:
     int _destination;
 public:
-    GotoStatement(int lineNum,const QString& source,const QStringList& argList);
+    GotoStatement(Context* context , int lineNum,const QString& source,const QStringList& argList);
     int exec(Context* context) override;
     void printSyntaxTree(QTextStream& out) const override;
 };
@@ -108,7 +109,7 @@ private:
     QChar _conditionOp;
     int _destination;
 public:
-    IfStatement(int lineNum, const QString& source, QStringList argList);
+    IfStatement(Context* context , int lineNum, const QString& source, QStringList argList);
     ~IfStatement() override;
     int exec(Context* context) override;
     void printSyntaxTree(QTextStream& out) const override;
@@ -118,7 +119,7 @@ public:
 
 class EndStatement: public Statement{
 public:
-    EndStatement(int lineNum,const QString& source);
+    EndStatement(Context* context , int lineNum,const QString& source);
     int exec(Context* context) override;
     void printSyntaxTree(QTextStream& out) const override;
 };

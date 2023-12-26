@@ -96,7 +96,7 @@ int Core::exec(int argc,char* argv[])
             QString qCmd = QString::fromStdString(cmd);
             qCmd.remove(0,strlen("cmd"));
             //使用行号0表示脚本
-            Statement *stmt = Statement::newStatement("0" + qCmd,false);
+            Statement *stmt = Statement::newStatement(context , "0" + qCmd,false);
             context->executeCode(stmt);
             delete stmt;
         }

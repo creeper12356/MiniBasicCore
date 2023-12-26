@@ -16,7 +16,7 @@ Context::~Context()
 
 void Context::appendCode(const QString &code)
 {
-    codes.append(Statement::newStatement(code));
+    codes.append(Statement::newStatement(this,code));
 }
 
 void Context::clearRunningStatus()
