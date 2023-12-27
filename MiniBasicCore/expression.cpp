@@ -120,7 +120,7 @@ QString Expression::infix2Suffix(const QString &str)
         }
         ret.append(st.pop());
     }
-    qDebug() << "suffix : " << ret;
+//    qDebug() << "suffix : " << ret;
     return ret;
 }
 Expression::Expression(const QString &str)
@@ -309,6 +309,10 @@ void Expression::printExpTree(QTextStream &out, int baseIndentation) const
         if(printInfo == "%"){
             //替换取余号
             printInfo = "MOD";
+        }
+        if(printInfo == "^"){
+            //替换乘方符号
+            printInfo = "**";
         }
         out << printInfo << endl;
         if(cur.node->left){
