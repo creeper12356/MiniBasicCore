@@ -179,6 +179,7 @@ Expression::Expression(const QString &str)
             rightNode = st.pop();
             leftNode = st.pop();
             st.push(new ExpNode(node_op,QString(ch),leftNode,rightNode));
+            rightNode = leftNode = nullptr;
         }
         if(st.empty()){
             throw Exception(EmptyExpr);
@@ -189,22 +190,19 @@ Expression::Expression(const QString &str)
     }
     catch(Exception e){
         //处理已分配动态空间
+        if(rightNode) {
+            delete rightNode;
+            rightNode = nullptr;
+        }
+        if(leftNode) {
+            delete leftNode;
+            leftNode = nullptr;
+        }
         for(ExpNode* node:st){
-            if(node == leftNode) {
-                qDebug() << "leftnode dup";
-                leftNode = nullptr;
-            }
-            if(node == rightNode) {
-                qDebug() << "rightnode dup" ;
-                rightNode = nullptr;
-            }
+            assert(node);
             delete node;
             node = nullptr;
         }
-        qDebug() << "leftNode: " << leftNode;
-        qDebug() << "rightNode: " << rightNode;
-        if(leftNode) delete leftNode;
-        if(rightNode) delete rightNode;
         //向上一层抛出异常
         throw e;
     }
@@ -261,13 +259,18 @@ int32_t Expression::value(Context *context, ExpNode *node)
         return value(context, node->left) * value(context, node->right);
     }
     else if(node->data == "/"){
-        return value(context, node->left) / value(context, node->right);
+        int32_t divisor = value(context, node->right);
+        if(divisor == 0){
+            //除数为0
+            throw Exception(DivideByZero);
+        }
+        return value(context, node->left) / divisor;
     }
     else if(node->data == "%"){
         return value(context, node->left) % value(context, node->right);
     }
     else if(node->data == "^"){
-        int exp = value(context, node->right);
+        int32_t exp = value(context, node->right);
         if(exp < 0){
             throw Exception(WrongExp);
         }

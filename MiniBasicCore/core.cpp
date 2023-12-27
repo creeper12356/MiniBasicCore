@@ -40,7 +40,7 @@ int Core::exec(int argc,char* argv[])
             while(true){
                 (!backendFlag) && (cout << "$");
                 if(!getline(cin,code)){
-                    //TODO exception when typing ctrlD
+                    //TODO exception when typing ctrl + D
                     cin.clear();
                     break;
                 }
