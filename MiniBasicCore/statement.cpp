@@ -119,6 +119,13 @@ void Statement::clearRunTime()
     _runTime.conditionCount.trueCount = _runTime.conditionCount.falseCount = 0;
 }
 
+QTextStream &Statement::printFormatRunTime(QTextStream &out, int runTime, bool isFormat)
+{
+    if(isFormat) out << "[" << runTime << "]" ;
+    else out << runTime ;
+    return out;
+}
+
 RemStatement::RemStatement(Context* context, int lineNum, const QString& source, const QStringList &argList)
     :Statement(context , lineNum ,"REM",source)
     ,_comment(argList.join(" "))
@@ -132,9 +139,10 @@ int RemStatement::exec()
     return 1;
 }
 
-void RemStatement::printSyntaxTree(QTextStream &out) const
+void RemStatement::printSyntaxTree(QTextStream &out, bool isFormat) const
 {
-    out << _lineNum << " REM  " << _runTime.count << endl;
+    out << _lineNum << " REM  " ;
+    printFormatRunTime(out,_runTime.count,isFormat) << endl;
     out << "\t" << _comment << endl;
 }
 
@@ -196,23 +204,25 @@ int LetStatement::exec()
     return 1;
 }
 
-void LetStatement::printSyntaxTree(QTextStream &out) const
+void LetStatement::printSyntaxTree(QTextStream &out , bool isFormat) const
 {
     if(_buildException.type != NoException){
         Statement::printErrSyntaxTree(out);
         return ;
     }
-    out << _lineNum << " LET =  " << _runTime.count <<endl;
+    out << _lineNum << " LET =  ";
+    printFormatRunTime(out,_runTime.count,isFormat) << endl;
+
     if(_leftExpr->getType() == exp_var){
         out << "\t" << _leftExpr->getRootData() << " " ;
         //输出使用次数
         if(!_context->useCount.contains(_leftExpr->getRootData())){
             //代码未运行时，varTable 和 useCount中可能不存在该变量
             //前端一定只可能在run之后调用analyze命令
-            out << 0 << endl;
+            printFormatRunTime(out , 0 , isFormat) << endl;
         }
         else{
-            out << _context->useCount[_leftExpr->getRootData()] << endl;
+            printFormatRunTime(out , _context->useCount[_leftExpr->getRootData()] , isFormat) << endl;
         }
     }
     else{
@@ -247,13 +257,15 @@ int PrintStatement::exec()
     return 1;
 }
 
-void PrintStatement::printSyntaxTree(QTextStream &out) const
+void PrintStatement::printSyntaxTree(QTextStream &out , bool isFormat) const
 {
     if(_buildException.type != NoException){
         Statement::printErrSyntaxTree(out);
         return ;
     }
-    out << _lineNum << " PRINT  " << _runTime.count << endl;
+    out << _lineNum << " PRINT  ";
+    printFormatRunTime(out , _runTime.count , isFormat) << endl;
+
     _expr->printExpTree(out,1);
 }
 
@@ -299,13 +311,14 @@ int InputStatement::exec()
     return 1;
 }
 
-void InputStatement::printSyntaxTree(QTextStream &out) const
+void InputStatement::printSyntaxTree(QTextStream &out , bool isFormat) const
 {
     if(_buildException.type != NoException){
         Statement::printErrSyntaxTree(out);
         return ;
     }
-    out << _lineNum << " INPUT  " << _runTime.count << endl;
+    out << _lineNum << " INPUT  ";
+    printFormatRunTime(out , _runTime.count , isFormat) << endl;
     _expr->printExpTree(out,1);
 }
 IfStatement::IfStatement(Context *context, int lineNum, const QString& source, QStringList argList)
@@ -397,15 +410,15 @@ int IfStatement::exec()
     return 1;
 }
 
-void IfStatement::printSyntaxTree(QTextStream &out) const
+void IfStatement::printSyntaxTree(QTextStream &out , bool isFormat) const
 {
     if(_buildException.type != NoException){
         Statement::printErrSyntaxTree(out);
         return ;
     }
-    out << _lineNum << " IF THEN  "
-        << _runTime.conditionCount.trueCount << " "
-        << _runTime.conditionCount.falseCount << endl;
+    out << _lineNum << " IF THEN  ";
+    printFormatRunTime(out , _runTime.conditionCount.trueCount , isFormat) << " ";
+    printFormatRunTime(out , _runTime.conditionCount.falseCount , isFormat) << endl;
     _conditionLeft->printExpTree(out,1);
     out << '\t' << _conditionOp << endl;
     _conditionRight->printExpTree(out,1);
@@ -456,13 +469,14 @@ int GotoStatement::exec()
     return 1;
 }
 
-void GotoStatement::printSyntaxTree(QTextStream& out) const
+void GotoStatement::printSyntaxTree(QTextStream& out , bool isFormat) const
 {
     if(_buildException.type != NoException){
         Statement::printErrSyntaxTree(out);
         return ;
     }
-    out << _lineNum << " GOTO  " << _runTime.count << endl;
+    out << _lineNum << " GOTO  ";
+    printFormatRunTime(out , _runTime.count , isFormat) << endl;
     out << '\t' << _destination << endl;
 }
 
@@ -478,9 +492,10 @@ int EndStatement::exec()
     return 0;
 }
 
-void EndStatement::printSyntaxTree(QTextStream &out) const
+void EndStatement::printSyntaxTree(QTextStream &out , bool isFormat) const
 {
-    out << _lineNum << " END  " << _runTime.count << endl;
+    out << _lineNum << " END  ";
+    printFormatRunTime(out , _runTime.count , isFormat) << endl;
 }
 
 ErrStatement::ErrStatement(Context* context ,int lineNum, const QString &source, Exception buildException)
@@ -495,7 +510,7 @@ int ErrStatement::exec()
     return 0;
 }
 
-void ErrStatement::printSyntaxTree(QTextStream& out) const
+void ErrStatement::printSyntaxTree(QTextStream& out, bool isFormat) const
 {
     Statement::printErrSyntaxTree(out);
 }

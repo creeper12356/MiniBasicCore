@@ -39,7 +39,7 @@ void Context::listCodes() const
 void Context::analyze(QTextStream &out) const
 {
     for(Statement* code: codes){
-        code->printSyntaxTree(out);
+        code->printSyntaxTree(out , true);
     }
 }
 
