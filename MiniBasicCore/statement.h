@@ -23,7 +23,7 @@ public:
 public:
     virtual int exec() = 0;
     virtual void printSyntaxTree(QTextStream& out, bool isFormat) const = 0;
-    void printErrSyntaxTree(QTextStream& out) const;
+    void printErrSyntaxTree(QTextStream& out, bool isFormat) const;
 
     virtual void updateRunTime(bool flag = true);
     virtual void printRunTime() const;

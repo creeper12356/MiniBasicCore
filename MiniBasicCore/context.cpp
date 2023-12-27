@@ -36,10 +36,10 @@ void Context::listCodes() const
     }
 }
 
-void Context::analyze(QTextStream &out) const
+void Context::analyze(QTextStream &out , bool isFormat) const
 {
     for(Statement* code: codes){
-        code->printSyntaxTree(out , true);
+        code->printSyntaxTree(out , isFormat);
     }
 }
 

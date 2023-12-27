@@ -76,9 +76,10 @@ Statement *Statement::newStatement(Context* context , QString src, bool lineNumC
     }
 }
 
-void Statement::printErrSyntaxTree(QTextStream& out) const
+void Statement::printErrSyntaxTree(QTextStream& out , bool isFormat) const
 {
-    out << getLineNumStr() << " Error" << endl;
+    out << getLineNumStr() << " Error " ;
+    printFormatRunTime(out , _runTime.count , isFormat) << endl;
 }
 
 Statement::Statement(Context *context, int lineNum, StatementType type, const QString &source, Exception buildException)
@@ -207,7 +208,7 @@ int LetStatement::exec()
 void LetStatement::printSyntaxTree(QTextStream &out , bool isFormat) const
 {
     if(_buildException.type != NoException){
-        Statement::printErrSyntaxTree(out);
+        Statement::printErrSyntaxTree(out , isFormat);
         return ;
     }
     out << _lineNum << " LET =  ";
@@ -260,7 +261,7 @@ int PrintStatement::exec()
 void PrintStatement::printSyntaxTree(QTextStream &out , bool isFormat) const
 {
     if(_buildException.type != NoException){
-        Statement::printErrSyntaxTree(out);
+        Statement::printErrSyntaxTree(out , isFormat);
         return ;
     }
     out << _lineNum << " PRINT  ";
@@ -314,7 +315,7 @@ int InputStatement::exec()
 void InputStatement::printSyntaxTree(QTextStream &out , bool isFormat) const
 {
     if(_buildException.type != NoException){
-        Statement::printErrSyntaxTree(out);
+        Statement::printErrSyntaxTree(out , isFormat);
         return ;
     }
     out << _lineNum << " INPUT  ";
@@ -413,7 +414,7 @@ int IfStatement::exec()
 void IfStatement::printSyntaxTree(QTextStream &out , bool isFormat) const
 {
     if(_buildException.type != NoException){
-        Statement::printErrSyntaxTree(out);
+        Statement::printErrSyntaxTree(out , isFormat);
         return ;
     }
     out << _lineNum << " IF THEN  ";
@@ -472,7 +473,7 @@ int GotoStatement::exec()
 void GotoStatement::printSyntaxTree(QTextStream& out , bool isFormat) const
 {
     if(_buildException.type != NoException){
-        Statement::printErrSyntaxTree(out);
+        Statement::printErrSyntaxTree(out , isFormat);
         return ;
     }
     out << _lineNum << " GOTO  ";
@@ -512,5 +513,5 @@ int ErrStatement::exec()
 
 void ErrStatement::printSyntaxTree(QTextStream& out, bool isFormat) const
 {
-    Statement::printErrSyntaxTree(out);
+    Statement::printErrSyntaxTree(out , isFormat);
 }

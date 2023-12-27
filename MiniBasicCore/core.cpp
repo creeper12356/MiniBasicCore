@@ -80,7 +80,7 @@ int Core::exec(int argc,char* argv[])
             QTextStream out(stdout);
 
             backendFlag && (cout << "#");
-            context->analyze(out);
+            context->analyze(out , backendFlag);
             backendFlag && (cout << "#");
         }
         else if(argList[0] == "vartable"){
