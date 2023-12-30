@@ -1,7 +1,8 @@
 #ifndef EXCEPTION_H
 #define EXCEPTION_H
-//本项目中所有的异常类
+/* 异常 */
 #include <QString>
+
 enum exception_type{
     NoException, //没有异常
     ParseError, //解析错误

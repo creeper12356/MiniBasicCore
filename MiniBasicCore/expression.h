@@ -1,6 +1,7 @@
 #ifndef EXPRESSION_H
 #define EXPRESSION_H
 #include "inc.h"
+/* 表达式相关 */
 //变量
 class Var{
 public:
@@ -43,11 +44,11 @@ public:
     ExpType getType() const {return type;}
     //返回根节点存储的字符串
     const QString& getRootData() const{return root->data;}
-    //计算表达式树的值
+    //递归计算表达式树的值
     int32_t value(Context *context, ExpNode* node);
     int32_t value(Context *context);
 
-    //在baseIndentation缩进下打印表达式树到流out
+    //在baseIndentation缩进下打印表达式树到输出流out
     void printExpTree(QTextStream& out,int baseIndentation = 0) const;
 };
 

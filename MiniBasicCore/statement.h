@@ -2,7 +2,9 @@
 #define STATEMENT_H
 #include "inc.h"
 #include "expression.h"
-//运行次数结构体
+/* 语句相关 */
+
+//运行次数
 union RunTime{
     int count;
     struct {
@@ -14,7 +16,7 @@ union RunTime{
 class Statement{
 public:
     //解析字符串语句自动解析生成语句,
-    //lineNumCheck表示是否检查行号范围
+    //参数lineNumCheck表示是否检查行号范围
     static Statement* newStatement(Context* context, QString src, bool lineNumCheck = true);
 
     Statement(Context* context , int lineNum, StatementType type, const QString &source,

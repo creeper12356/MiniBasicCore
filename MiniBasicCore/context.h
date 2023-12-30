@@ -1,6 +1,7 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 #include "inc.h"
+/* 运行上下文 */
 class Context
 {
     friend class RemStatement;
@@ -32,7 +33,7 @@ private:
     QMap<QString,int32_t> varTable;
     QMap<QString,int> useCount;
     QVector<Statement*> codes;
-    int PC;
+    int PC; /* Program Counter */
 };
 
 #endif // CONTEXT_H

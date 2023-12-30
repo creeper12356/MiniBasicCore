@@ -84,13 +84,13 @@ QString Expression::infix2Suffix(const QString &str)
                     //遇到正负号，补全操作数0
                     ret.append("[0]");
                 }
-                while(!st.empty() && (st.top() == '^' && st.top() == '*' || st.top() == '/' || st.top() == '%' || st.top() == '+' || st.top() == '-')){
+                while(!st.empty() && (st.top() == '^' || st.top() == '*' || st.top() == '/' || st.top() == '%' || st.top() == '+' || st.top() == '-')){
                     ret.append(st.pop());
                 }
                 st.push(ch);
             }
             else if(ch == '*' || ch == '/' || ch == '%'){
-                while(!st.empty() && (st.top() == '^' && st.top() == '*' || st.top() == '/' || st.top() == '%')){
+                while(!st.empty() && (st.top() == '^' || st.top() == '*' || st.top() == '/' || st.top() == '%')){
                     ret.append(st.pop());
                 }
                 st.push(ch);

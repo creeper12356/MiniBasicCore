@@ -118,6 +118,10 @@ void Core::usage() const
             "append:\t\tappend codes from stdin\n"
             "list:\t\tlist loaded codes\n"
             "analyze:\tprint syntax tree of loaded codes\n"
+            "pc:\t\tget program counter position\n"
+            "vartable:\tprint value table of variables\n"
+            "runtime:\tlist run time of every statement\n"
+            "usecount:\tprint usecount table of variables\n"
             "cmd:\t\tdirectly execute BASIC code\n"
             "exit:\t\tquit this program\n";
 }
